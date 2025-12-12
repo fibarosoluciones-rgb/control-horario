@@ -1,641 +1,263 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Control horario Pro</title>
-  <style>
-    :root {
-      --bg: #0b1220;
-      --panel: #10182b;
-      --panel-strong: #0f172a;
-      --accent: #22d3ee;
-      --accent-strong: #0ea5e9;
-      --text: #e2e8f0;
-      --text-muted: #94a3b8;
-      --border: rgba(148, 163, 184, 0.25);
-      --danger: #ef4444;
-      --success: #22c55e;
-      --warning: #f59e0b;
-      font-family: "Inter", system-ui, -apple-system, sans-serif;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: radial-gradient(circle at 20% 20%, rgba(34,211,238,0.08), transparent 25%),
-        radial-gradient(circle at 80% 0%, rgba(14,165,233,0.12), transparent 22%),
-        var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-    }
-    h1, h2, h3 { margin: 0; }
-    a { color: var(--accent); text-decoration: none; }
-    .hidden { display: none !important; }
+.tasks-banner-actions {
+  margin-top: 0.35rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.agenda-done-info {
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.agenda-pending-panel {
+  margin-bottom: 1rem;
+  padding: 0.8rem;
+  border-radius: 0.8rem;
+  border: 1px solid rgba(148,163,184,0.45);
+  background: rgba(15,23,42,0.85);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 0.8rem;
+}
+.agenda-pending-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.agenda-pending-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.agenda-pending-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+.agenda-pending-item {
+  padding: 0.4rem 0.5rem;
+  border-radius: 0.6rem;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56,189,248,0.35);
+}
+.agenda-pending-empty {
+  padding: 0.4rem 0.5rem;
+  border-radius: 0.6rem;
+  background: rgba(15,23,42,0.8);
+  border: 1px dashed rgba(148,163,184,0.4);
+  color: var(--text-muted);
+}
+@media (max-width: 900px) {
+  .agenda-pending-panel {
+    grid-template-columns: minmax(0,1fr);
+  }
+}
+      <div id="tasksBannerGlobal"></div>
 
-    .login-screen {
-      position: fixed;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      background: linear-gradient(135deg, rgba(15,23,42,0.96), rgba(11,17,31,0.92));
-      z-index: 20;
-    }
-    .login-card {
-      width: min(420px, 92vw);
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 28px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.35);
-    }
-    .login-title { font-size: 1.4rem; margin-bottom: 0.35rem; }
-    .login-subtitle { color: var(--text-muted); margin-bottom: 1.3rem; }
-
-    .input-group { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.9rem; }
-    label { color: var(--text-muted); font-size: 0.92rem; }
-    input, select, textarea {
-      background: #0b1324;
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 12px;
-      font-size: 1rem;
-    }
-    textarea { resize: vertical; min-height: 70px; }
-
-    .btn {
-      border: 0;
-      border-radius: 12px;
-      padding: 10px 14px;
-      font-weight: 600;
-      cursor: pointer;
-      color: #0b1220;
-      transition: transform 0.08s ease, box-shadow 0.2s ease, background 0.2s ease;
-      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-      box-shadow: 0 10px 20px rgba(34,211,238,0.25);
-    }
-    .btn:hover { transform: translateY(-1px); }
-    .btn.secondary {
-      background: transparent;
-      color: var(--text);
-      border: 1px solid var(--border);
-      box-shadow: none;
-    }
-    .btn.danger { background: linear-gradient(135deg, #f87171, #ef4444); color: #0b1220; }
-    .btn.small { padding: 7px 10px; font-size: 0.9rem; }
-
-    .shell { max-width: 1200px; margin: 0 auto; padding: 28px 18px 46px; }
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-      margin-bottom: 18px;
-    }
-    .user-chip { display: flex; align-items: center; gap: 12px; }
-    .avatar {
-      width: 46px; height: 46px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, #1f2937, #0f172a);
-      display: grid; place-items: center;
-      font-weight: 700;
-      color: var(--accent);
-      border: 1px solid var(--border);
-    }
-    .nav { display: flex; gap: 10px; flex-wrap: wrap; }
-    .tab-btn {
-      padding: 9px 12px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      background: #0c1323;
-      color: var(--text);
-      cursor: pointer;
-      transition: background 0.2s ease, border 0.2s ease;
-      display: inline-flex; align-items: center; gap: 8px;
-      font-weight: 600;
-    }
-    .tab-btn.active { background: rgba(34,211,238,0.12); border-color: rgba(34,211,238,0.4); color: var(--accent); }
-
-    .grid { display: grid; gap: 14px; }
-    .grid.col-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-    .panel {
-      background: var(--panel);
-      border-radius: 16px;
-      border: 1px solid var(--border);
-      padding: 16px;
-    }
-    .panel-title { font-weight: 700; margin-bottom: 8px; }
-    .muted { color: var(--text-muted); }
-    .flex { display: flex; gap: 10px; align-items: center; }
-    .space-between { justify-content: space-between; }
-
-    .tag { padding: 4px 8px; border-radius: 8px; font-size: 0.85rem; border: 1px solid var(--border); }
-    .tag.success { border-color: rgba(34,197,94,0.6); color: var(--success); }
-    .tag.warning { border-color: rgba(245,158,11,0.6); color: var(--warning); }
-
-    .progress {
-      height: 10px;
-      background: #0b1324;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      overflow: hidden;
-    }
-    .progress > div { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-strong)); }
-
-    .card {
-      background: #0d162a;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 12px;
-    }
-    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-    .pill {
-      background: rgba(148,163,184,0.1);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 6px 10px;
-      border-radius: 999px;
-      font-size: 0.9rem;
-    }
-    .link-row { display: flex; gap: 8px; align-items: center; }
-
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 10px 8px; border-bottom: 1px solid var(--border); text-align: left; }
-    th { color: var(--text-muted); font-weight: 600; }
-    tr:hover td { background: rgba(34,211,238,0.04); }
-    @media (max-width: 720px) { .header { flex-direction: column; align-items: flex-start; } .nav { width: 100%; } .tab-btn { flex: 1; justify-content: center; } }
-  </style>
-</head>
-<body>
-  <div class="login-screen" id="loginScreen">
-    <div class="login-card">
-      <div class="login-title">Control horario</div>
-      <div class="login-subtitle">Accede para ver tu panel personalizado.</div>
-      <div class="input-group">
-        <label for="loginUser">Usuario</label>
-        <input id="loginUser" autocomplete="username" placeholder="admin" />
-      </div>
-      <div class="input-group">
-        <label for="loginPass">Contraseña</label>
-        <input id="loginPass" type="password" autocomplete="current-password" placeholder="••••••" />
-      </div>
-      <div class="flex space-between">
-        <button class="btn" id="loginBtn">Entrar</button>
-        <div class="muted" id="loginHint"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="shell hidden" id="appShell">
-    <div class="header">
-      <div class="user-chip">
-        <div class="avatar" id="userAvatar">🙂</div>
-        <div>
-          <div id="userName" style="font-weight:700"></div>
-          <div class="muted" id="userRole"></div>
-        </div>
-      </div>
-      <div class="nav" id="navTabs"></div>
-      <button class="btn secondary small" id="logoutBtn">Cerrar sesión</button>
-    </div>
-
-    <div id="tab-dashboard" class="tab-view">
-      <div class="grid col-2">
-        <div class="panel">
-          <div class="panel-title">Progreso semanal</div>
-          <div class="muted" id="weeklyLabel"></div>
-          <div class="progress" style="margin:10px 0 6px">
-            <div id="weeklyProgress" style="width:0%"></div>
-          </div>
-          <div class="chips" id="weeklyChips"></div>
-        </div>
-        <div class="panel">
-          <div class="panel-title">Contacto rápido</div>
-          <div class="muted" style="margin-bottom:8px">Directo a Telegram, WhatsApp o correo.</div>
-          <div class="grid col-2" id="contactCards"></div>
-        </div>
-      </div>
-    </div>
-
-    <div id="tab-fichajes" class="tab-view hidden">
-      <div class="grid col-2">
-        <div class="panel">
-          <div class="panel-title">Registrar jornada</div>
-          <div class="input-group">
-            <label for="startLocation">Ubicación</label>
-            <input id="startLocation" placeholder="Oficina, remoto, cliente…" />
-          </div>
-          <button class="btn" id="startBtn">Iniciar fichaje</button>
-          <button class="btn secondary" id="stopBtn" style="margin-top:8px">Cerrar fichaje</button>
-          <div id="runningInfo" class="muted" style="margin-top:8px"></div>
-        </div>
-        <div class="panel">
-          <div class="panel-title">Resumen semanal</div>
-          <div id="fichajeResumen" class="muted"></div>
-        </div>
-      </div>
-      <div class="panel" style="margin-top:12px">
-        <div class="panel-title">Histórico</div>
-        <table>
-          <thead>
-            <tr><th>Fecha</th><th>Inicio</th><th>Fin</th><th>Horas</th><th>Ubicación</th></tr>
-          </thead>
-          <tbody id="fichajeTable"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div id="tab-agenda" class="tab-view hidden">
-      <div class="panel">
-        <div class="flex space-between" style="margin-bottom:10px">
-          <div>
-            <div class="panel-title">Agenda rápida</div>
-            <div class="muted">Tareas ligeras con marcar y listo.</div>
-          </div>
-          <button class="btn small" id="addTaskBtn">Añadir tarea</button>
-        </div>
-        <div class="grid col-2" id="taskList"></div>
-      </div>
-    </div>
-
-    <div id="tab-admin" class="tab-view hidden">
-      <div class="panel">
-        <div class="flex space-between" style="margin-bottom:12px">
-          <div>
-            <div class="panel-title">Usuarios</div>
-            <div class="muted">Crear, modificar, eliminar y ajustar objetivo semanal.</div>
-          </div>
-          <button class="btn small" id="newUserBtn">Nuevo usuario</button>
-        </div>
-        <table>
-          <thead>
-            <tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Objetivo</th><th>Contacto</th><th></th></tr>
-          </thead>
-          <tbody id="userTable"></tbody>
-        </table>
-      </div>
-      <div class="panel" id="userFormPanel" style="margin-top:12px;" hidden>
-        <div class="panel-title" id="userFormTitle">Alta de usuario</div>
-        <div class="grid col-2">
-          <div class="input-group">
-            <label>Usuario</label><input id="formUsername" />
-          </div>
-          <div class="input-group">
-            <label>Contraseña</label><input id="formPassword" type="password" />
-          </div>
-          <div class="input-group">
-            <label>Nombre a mostrar</label><input id="formNombre" />
-          </div>
-          <div class="input-group">
-            <label>Rol</label>
-            <select id="formRol">
-              <option value="empleado">Empleado</option>
-              <option value="tecnico">Técnico</option>
-              <option value="admin">Administrador</option>
-            </select>
-          </div>
-          <div class="input-group">
-            <label>Telegram (@usuario)</label><input id="formTelegram" placeholder="@usuario" />
-          </div>
-          <div class="input-group">
-            <label>WhatsApp (+34...)</label><input id="formWhatsapp" placeholder="+34..." />
-          </div>
-          <div class="input-group">
-            <label>Email</label><input id="formEmail" type="email" />
-          </div>
-          <div class="input-group">
-            <label>Horas semanales objetivo</label><input id="formHoras" type="number" min="1" step="1" />
-          </div>
-        </div>
-        <div class="input-group">
-          <label>Notas internas</label>
-          <textarea id="formNotas" placeholder="Disponibilidad, equipos, preferencias..."></textarea>
-        </div>
-        <div class="flex" style="gap:10px">
-          <button class="btn" id="saveUserBtn">Guardar</button>
-          <button class="btn secondary" id="cancelUserBtn">Cancelar</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const STORAGE = {
-      USERS: "controlHorario.users",
-      FICHAJES: "controlHorario.fichajes",
-      TASKS: "controlHorario.tasks",
-      CURRENT: "controlHorario.currentUser"
-    };
-
-    const navConfig = [
-      { id: "dashboard", label: "Inicio", icon: "🏠" },
-      { id: "fichajes", label: "Fichajes", icon: "⏱️" },
-      { id: "agenda", label: "Agenda", icon: "📋" },
-      { id: "admin", label: "Administración", icon: "🛠️", admin: true }
-    ];
-
-    let users = [];
-    let fichajes = [];
-    let tasks = [];
-    let currentUser = null;
-    let editUserId = null;
-
-    function loadData() {
-      users = JSON.parse(localStorage.getItem(STORAGE.USERS) || "null") || [
-        { username: "admin", password: "admin123", role: "admin", nombre: "Administración", objetivoSemanal: 40, contacto: { telegram: "@admin", whatsapp: "+34111111111", email: "admin@ejemplo.com" }, notas: "" },
-        { username: "alicia", password: "alicia123", role: "empleado", nombre: "Alicia", objetivoSemanal: 35, contacto: { telegram: "@alicia", whatsapp: "+34911111111", email: "alicia@empresa.com" }, notas: "Soporte mañana" },
-        { username: "maria", password: "maria123", role: "empleado", nombre: "María", objetivoSemanal: 40, contacto: { telegram: "@maria", whatsapp: "+34922222222", email: "maria@empresa.com" }, notas: "Cliente norte" },
-        { username: "tecnico", password: "tecnico123", role: "tecnico", nombre: "Técnico", objetivoSemanal: 40, contacto: { telegram: "@tecnico", whatsapp: "+34933333333", email: "tecnico@empresa.com" }, notas: "Guardias" }
-      ];
-      fichajes = JSON.parse(localStorage.getItem(STORAGE.FICHAJES) || "null") || [];
-      tasks = JSON.parse(localStorage.getItem(STORAGE.TASKS) || "null") || [
-        { id: crypto.randomUUID(), titulo: "Enviar reporte semanal", done: false },
-        { id: crypto.randomUUID(), titulo: "Revisar incidencias críticas", done: false }
-      ];
-      const storedUser = JSON.parse(localStorage.getItem(STORAGE.CURRENT) || "null");
-      if (storedUser) currentUser = users.find(u => u.username === storedUser.username) || null;
-    }
-
-    function saveData() {
-      localStorage.setItem(STORAGE.USERS, JSON.stringify(users));
-      localStorage.setItem(STORAGE.FICHAJES, JSON.stringify(fichajes));
-      localStorage.setItem(STORAGE.TASKS, JSON.stringify(tasks));
-      if (currentUser) localStorage.setItem(STORAGE.CURRENT, JSON.stringify({ username: currentUser.username }));
-    }
-
-    function setActiveTab(id) {
-      document.querySelectorAll(".tab-view").forEach(el => el.classList.add("hidden"));
-      document.getElementById(`tab-${id}`).classList.remove("hidden");
-      document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.tab === id));
-      if (id === "fichajes") renderFichajes();
-      if (id === "dashboard") renderDashboard();
-      if (id === "agenda") renderTasks();
-      if (id === "admin") renderUsers();
-    }
-
-    function login() {
-      const user = document.getElementById("loginUser").value.trim();
-      const pass = document.getElementById("loginPass").value.trim();
-      const found = users.find(u => u.username === user && u.password === pass);
-      const hint = document.getElementById("loginHint");
-      if (!found) { hint.textContent = "Credenciales no válidas"; return; }
-      currentUser = found;
-      saveData();
-      document.getElementById("loginScreen").classList.add("hidden");
-      document.getElementById("appShell").classList.remove("hidden");
-      document.getElementById("userAvatar").textContent = (found.nombre || found.username).slice(0,2).toUpperCase();
-      document.getElementById("userName").textContent = found.nombre || found.username;
-      document.getElementById("userRole").textContent = found.role === "admin" ? "Administrador" : found.role === "tecnico" ? "Técnico" : "Empleado";
-      renderNav();
-      renderDashboard();
-      setActiveTab("dashboard");
-    }
-
-    function logout() {
-      currentUser = null;
-      localStorage.removeItem(STORAGE.CURRENT);
-      document.getElementById("appShell").classList.add("hidden");
-      document.getElementById("loginScreen").classList.remove("hidden");
-    }
-
-    function renderNav() {
-      const nav = document.getElementById("navTabs");
-      nav.innerHTML = "";
-      navConfig.forEach(item => {
-        if (item.admin && currentUser?.role !== "admin") return;
-        const btn = document.createElement("button");
-        btn.className = "tab-btn";
-        btn.dataset.tab = item.id;
-        btn.textContent = `${item.icon} ${item.label}`;
-        btn.addEventListener("click", () => setActiveTab(item.id));
-        nav.appendChild(btn);
-      });
-    }
-
-    function computeHorasSemana(user) {
-      const startOfWeek = (() => {
-        const d = new Date();
-        const day = d.getDay();
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-        d.setDate(diff); d.setHours(0,0,0,0); return d;
-      })();
-      const userEntries = fichajes.filter(f => f.username === user.username && new Date(f.inicio) >= startOfWeek);
-      const totalMs = userEntries.reduce((acc, f) => acc + ((f.fin ? new Date(f.fin) : new Date()) - new Date(f.inicio)), 0);
-      return totalMs / (1000*60*60);
-    }
-
-    function renderDashboard() {
-      const hours = computeHorasSemana(currentUser);
-      const goal = currentUser.objetivoSemanal || 40;
-      const pct = Math.min(100, Math.round((hours / goal) * 100));
-      document.getElementById("weeklyLabel").textContent = `${hours.toFixed(1)} h de ${goal} h`;
-      document.getElementById("weeklyProgress").style.width = `${pct}%`;
-      const chips = document.getElementById("weeklyChips");
-      chips.innerHTML = "";
-      const tags = [
-        { text: pct >= 100 ? "Objetivo cumplido" : `Progreso ${pct}%`, class: pct >= 80 ? "success" : "warning" },
-        { text: currentUser.role === "admin" ? "Vista de administrador" : "Modo usuario" }
-      ];
-      tags.forEach(t => {
-        const span = document.createElement("span");
-        span.className = `tag ${t.class || ""}`;
-        span.textContent = t.text;
-        chips.appendChild(span);
-      });
-
-      const contacts = document.getElementById("contactCards");
-      contacts.innerHTML = "";
-      users.forEach(u => {
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `
-          <div class="flex space-between" style="margin-bottom:6px">
-            <div><strong>${u.nombre || u.username}</strong><div class="muted">${u.role}</div></div>
-            <span class="pill">${u.objetivoSemanal || 40} h/sem</span>
-          </div>
-          <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:6px;">
-            ${u.contacto?.telegram ? `<div class="link-row">🤖 <a href="https://t.me/${u.contacto.telegram.replace('@','')}" target="_blank">Telegram</a></div>` : ""}
-            ${u.contacto?.whatsapp ? `<div class="link-row">💬 <a href="https://wa.me/${u.contacto.whatsapp.replace(/[^\d]/g, '')}" target="_blank">WhatsApp</a></div>` : ""}
-            ${u.contacto?.email ? `<div class="link-row">✉️ <a href="mailto:${u.contacto.email}">${u.contacto.email}</a></div>` : ""}
-          </div>`;
-        contacts.appendChild(card);
-      });
-    }
-
-    function renderFichajes() {
-      const table = document.getElementById("fichajeTable");
-      const resumen = document.getElementById("fichajeResumen");
-      table.innerHTML = "";
-      const userEntries = fichajes.filter(f => f.username === currentUser.username).sort((a,b) => new Date(b.inicio) - new Date(a.inicio));
-      userEntries.forEach(f => {
-        const tr = document.createElement("tr");
-        const durMs = (f.fin ? new Date(f.fin) : new Date()) - new Date(f.inicio);
-        const durH = durMs / (1000*60*60);
-        tr.innerHTML = `
-          <td>${new Date(f.inicio).toLocaleDateString()}</td>
-          <td>${new Date(f.inicio).toLocaleTimeString()}</td>
-          <td>${f.fin ? new Date(f.fin).toLocaleTimeString() : "En curso"}</td>
-          <td>${durH.toFixed(2)}</td>
-          <td>${f.ubicacion || "-"}</td>`;
-        table.appendChild(tr);
-      });
-      const horas = computeHorasSemana(currentUser);
-      resumen.textContent = `${horas.toFixed(1)} h registradas esta semana (objetivo ${currentUser.objetivoSemanal || 40} h).`;
-
-      const running = fichajes.find(f => f.username === currentUser.username && !f.fin);
-      const info = document.getElementById("runningInfo");
-      info.textContent = running ? `Fichaje abierto desde ${new Date(running.inicio).toLocaleTimeString()} (${running.ubicacion || ""})` : "Sin fichajes activos.";
-    }
-
-    function startFichaje() {
-      const running = fichajes.find(f => f.username === currentUser.username && !f.fin);
-      if (running) { alert("Ya tienes un fichaje abierto."); return; }
-      fichajes.push({ id: crypto.randomUUID(), username: currentUser.username, inicio: new Date().toISOString(), fin: null, ubicacion: document.getElementById("startLocation").value.trim() });
-      saveData();
-      renderFichajes();
-    }
-
-    function stopFichaje() {
-      const running = fichajes.find(f => f.username === currentUser.username && !f.fin);
-      if (!running) { alert("No hay fichaje activo."); return; }
-      running.fin = new Date().toISOString();
-      saveData();
-      renderFichajes();
-    }
-
-    function renderTasks() {
-      const list = document.getElementById("taskList");
-      list.innerHTML = "";
-      tasks.forEach(t => {
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `
-          <div class="flex space-between">
-            <div>
-              <div style="font-weight:700">${t.titulo}</div>
-              <div class="muted">${t.done ? "Completada" : "Pendiente"}</div>
+            <div id="agendaPendingPanel" class="agenda-pending-panel">
+              <div class="agenda-pending-column">
+                <div class="agenda-pending-title">Tareas de hoy</div>
+                <div id="pendingTodayList" class="agenda-pending-list"></div>
+              </div>
+              <div class="agenda-pending-column">
+                <div class="agenda-pending-title">Próximos 7 días</div>
+                <div id="pendingNext7List" class="agenda-pending-list"></div>
+              </div>
             </div>
-            <label class="pill"><input type="checkbox" ${t.done ? "checked" : ""}/> Hecha</label>
-          </div>`;
-        const chk = card.querySelector("input");
-        chk.addEventListener("change", () => { t.done = chk.checked; saveData(); renderTasks(); });
-        list.appendChild(card);
-      });
-      if (!tasks.length) list.innerHTML = '<div class="muted">Sin tareas.</div>';
-    }
-
-    function addTask() {
-      const titulo = prompt("Título de la tarea");
-      if (!titulo) return;
-      tasks.unshift({ id: crypto.randomUUID(), titulo, done: false });
-      saveData();
-      renderTasks();
-    }
-
-    function renderUsers() {
-      const tbody = document.getElementById("userTable");
-      tbody.innerHTML = "";
-      users.forEach(u => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${u.username}</td>
-          <td>${u.nombre || "-"}</td>
-          <td>${u.role}</td>
-          <td>${u.objetivoSemanal || 40} h</td>
-          <td>${u.contacto?.email || ""}</td>
-          <td class="flex" style="gap:8px">
-            <button class="btn small secondary">Editar</button>
-            <button class="btn small danger">Eliminar</button>
-          </td>`;
-        const [editBtn, delBtn] = tr.querySelectorAll("button");
-        editBtn.addEventListener("click", () => openUserForm(u.username));
-        delBtn.addEventListener("click", () => deleteUser(u.username));
-        tbody.appendChild(tr);
+                Fichajes con objetivo semanal personalizado (Alicia 35 h, María 40 h y resto 40 h por defecto).
+                Se guarda fecha, horas y ubicación de inicio.
+      { username: "tecnico", password: "tecnico123", role: "tecnico", nombre: "Técnico", personaKey: "tecnico", objetivoSemanal: 40 }
+            normalizeTasksData();
+    function normalizeTasksData() {
+      ensureTasksArray();
+      appState.tasks.forEach(t => {
+        if (typeof t.done !== "boolean") t.done = false;
+        if (!("doneBy" in t)) t.doneBy = null;
+        if (!("doneAt" in t)) t.doneAt = null;
+        if (!Array.isArray(t.sharedWith)) t.sharedWith = [];
+        if (t.createdBy && !t.sharedWith.includes(t.createdBy)) {
+          t.sharedWith.push(t.createdBy);
+        }
       });
     }
 
-    function openUserForm(username = null) {
-      const panel = document.getElementById("userFormPanel");
-      panel.hidden = false;
-      const isEdit = !!username;
-      const title = document.getElementById("userFormTitle");
-      title.textContent = isEdit ? "Editar usuario" : "Alta de usuario";
-      editUserId = username;
-      const user = users.find(u => u.username === username) || { contacto: {} };
-      document.getElementById("formUsername").value = user.username || "";
-      document.getElementById("formPassword").value = user.password || "";
-      document.getElementById("formNombre").value = user.nombre || "";
-      document.getElementById("formRol").value = user.role || "empleado";
-      document.getElementById("formTelegram").value = user.contacto?.telegram || "";
-      document.getElementById("formWhatsapp").value = user.contacto?.whatsapp || "";
-      document.getElementById("formEmail").value = user.contacto?.email || "";
-      document.getElementById("formHoras").value = user.objetivoSemanal || 40;
-      document.getElementById("formNotas").value = user.notas || "";
+      if (currentUser && (currentUser.role === "empleado" || currentUser.role === "tecnico")) {
+      if (currentUser && (currentUser.role === "empleado" || currentUser.role === "tecnico")) {
+          if (!confirm("¿Eliminar esta solicitud aprobada del histórico? Se recalcularán automáticamente los contadores de vacaciones.")) return;
+    const tasksBanner = document.getElementById("tasksBanner");
+    const tasksBannerGlobal = document.getElementById("tasksBannerGlobal");
+    const pendingTodayList = document.getElementById("pendingTodayList");
+    const pendingNext7List = document.getElementById("pendingNext7List");
+    const agendaPendingPanel = document.getElementById("agendaPendingPanel");
+      normalizeTasksData();
+        done: false,
+        doneBy: null,
+        doneAt: null
+
+              const title = document.createElement("div");
+              title.className = "agenda-task-title";
+              title.textContent = `${horaText}${t.titulo}`;
+              if (t.done) title.classList.add("agenda-task-done");
+              item.appendChild(title);
+
+              const meta = document.createElement("div");
+              meta.className = "agenda-task-meta";
+              meta.textContent = `Creado por ${creatorName}`;
+              item.appendChild(meta);
+
+              if (t.done) {
+                const info = document.createElement("div");
+                info.className = "agenda-done-info";
+                const quien = t.doneBy || "Alguien";
+                const fechaHecha = formatearFechaHoraCorta(t.doneAt);
+                info.textContent = `✓ Hecha por ${quien}${fechaHecha ? ` el ${fechaHecha}` : ""}`;
+                item.appendChild(info);
+              }
+
+              const actions = document.createElement("div");
+              actions.style.marginTop = "0.2rem";
+              actions.style.display = "flex";
+              actions.style.alignItems = "center";
+              const checkbox = document.createElement("input");
+              checkbox.type = "checkbox";
+              checkbox.checked = !!t.done;
+              checkbox.addEventListener("change", () => {
+                toggleTaskDone(t.id, checkbox.checked, checkbox);
+              });
+              const label = document.createElement("span");
+              label.style.marginLeft = "0.35rem";
+              label.textContent = t.done ? "Marcar como pendiente" : "Marcar como hecha";
+              actions.appendChild(checkbox);
+              actions.appendChild(label);
+              item.appendChild(actions);
+
+        if (t.done) {
+          const info = document.createElement("div");
+          info.className = "agenda-done-info";
+          const quien = t.doneBy || "Alguien";
+          const fechaHecha = formatearFechaHoraCorta(t.doneAt);
+          info.textContent = `✓ Hecha por ${quien}${fechaHecha ? ` el ${fechaHecha}` : ""}`;
+          row.appendChild(info);
+        }
+
+          toggleTaskDone(t.id, checkbox.checked, checkbox);
+        label.textContent = t.done ? "Marcar como pendiente" : "Marcar como hecha";
+    function canUserToggleTask(t) {
+      if (!currentUser) return false;
+      if (currentUser.role === "admin") return true;
+      if (t.createdBy === currentUser.username) return true;
+      return Array.isArray(t.sharedWith) && t.sharedWith.includes(currentUser.username);
     }
 
-    function resetUserForm() {
-      document.getElementById("userFormPanel").hidden = true;
-      editUserId = null;
+    function formatearFechaHoraCorta(iso) {
+      if (!iso) return "";
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return "";
+      return d.toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short" });
     }
 
-    function saveUser() {
-      const data = {
-        username: document.getElementById("formUsername").value.trim(),
-        password: document.getElementById("formPassword").value.trim(),
-        nombre: document.getElementById("formNombre").value.trim(),
-        role: document.getElementById("formRol").value,
-        objetivoSemanal: parseInt(document.getElementById("formHoras").value, 10) || 40,
-        contacto: {
-          telegram: document.getElementById("formTelegram").value.trim(),
-          whatsapp: document.getElementById("formWhatsapp").value.trim(),
-          email: document.getElementById("formEmail").value.trim()
-        },
-        notas: document.getElementById("formNotas").value.trim()
-      };
-      if (!data.username || !data.password) { alert("Usuario y contraseña son obligatorios."); return; }
-      const existing = users.find(u => u.username === editUserId);
-      if (existing) {
-        Object.assign(existing, data);
-      } else {
-        if (users.some(u => u.username === data.username)) { alert("El usuario ya existe"); return; }
-        users.push(data);
+    function renderPendingTasksList(container, items, emptyText) {
+      if (!container) return;
+      container.innerHTML = "";
+      if (!items.length) {
+        const empty = document.createElement("div");
+        empty.className = "agenda-pending-empty";
+        empty.textContent = emptyText;
+        container.appendChild(empty);
+        return;
       }
-      saveData();
-      renderUsers();
-      renderDashboard();
-      resetUserForm();
+      items.slice().sort((a,b) => (a.fecha || "").localeCompare(b.fecha || "")).forEach(t => {
+        const div = document.createElement("div");
+        div.className = "agenda-pending-item";
+        const hora = t.hora ? ` · ${t.hora}` : "";
+        const fecha = t.fecha ? formatearFechaISOaBonito(t.fecha) : "Sin fecha";
+        div.textContent = `${fecha}: ${t.titulo}${hora}`;
+        container.appendChild(div);
+      });
     }
 
-    function deleteUser(username) {
-      if (!confirm("¿Eliminar usuario?")) return;
-      users = users.filter(u => u.username !== username);
-      fichajes = fichajes.filter(f => f.username !== username);
-      tasks = tasks.filter(t => t.username !== username || !t.username);
-      saveData();
-      renderUsers();
-      renderDashboard();
+    function renderTasksBanner(visibles, targetEl, options = {}) {
+      const banner = targetEl || document.getElementById("tasksBanner");
+      banner.innerHTML = "";
+        if (options.showEmpty !== false) {
+          const wrap = document.createElement("div");
+          wrap.className = "tasks-banner";
+          wrap.innerHTML = '<div class="tasks-banner-title">✅ No tienes tareas pendientes próximas.</div>';
+          banner.appendChild(wrap);
+        }
+      const wrap = document.createElement("div");
+      wrap.className = "tasks-banner";
+
+      const title = document.createElement("div");
+      title.className = "tasks-banner-title";
+      title.textContent = "🔔 Tareas pendientes";
+      wrap.appendChild(title);
+        const section = document.createElement("div");
+        section.className = "tasks-banner-section";
+        section.innerHTML = '<div class="tasks-banner-item-strong">Para hoy:</div>';
+          const item = document.createElement("div");
+          item.className = "tasks-banner-item";
+          item.textContent = `• ${t.titulo}${hora}`;
+          section.appendChild(item);
+        wrap.appendChild(section);
+        const section = document.createElement("div");
+        section.className = "tasks-banner-section";
+        section.innerHTML = '<div class="tasks-banner-item-strong">Próximos 7 días:</div>';
+          const item = document.createElement("div");
+          item.className = "tasks-banner-item";
+          item.textContent = `• ${fecha}: ${t.titulo}${hora}`;
+          section.appendChild(item);
+        wrap.appendChild(section);
+      if (options.showButton) {
+        const actions = document.createElement("div");
+        actions.className = "tasks-banner-actions";
+        const btn = document.createElement("button");
+        btn.className = "btn btn-primary btn-small";
+        btn.textContent = "Ver tareas";
+        btn.addEventListener("click", () => setActiveTab("agenda"));
+        actions.appendChild(btn);
+        wrap.appendChild(actions);
+      }
+
+      banner.appendChild(wrap);
     }
 
-    document.getElementById("loginBtn").addEventListener("click", login);
-    document.getElementById("logoutBtn").addEventListener("click", logout);
-    document.getElementById("startBtn").addEventListener("click", startFichaje);
-    document.getElementById("stopBtn").addEventListener("click", stopFichaje);
-    document.getElementById("addTaskBtn").addEventListener("click", addTask);
-    document.getElementById("newUserBtn").addEventListener("click", () => openUserForm());
-    document.getElementById("saveUserBtn").addEventListener("click", saveUser);
-    document.getElementById("cancelUserBtn").addEventListener("click", resetUserForm);
-
-    loadData();
-    if (currentUser) {
-      document.getElementById("loginScreen").classList.add("hidden");
-      document.getElementById("appShell").classList.remove("hidden");
-      document.getElementById("loginUser").value = currentUser.username;
-      document.getElementById("userAvatar").textContent = (currentUser.nombre || currentUser.username).slice(0,2).toUpperCase();
-      document.getElementById("userName").textContent = currentUser.nombre || currentUser.username;
-      document.getElementById("userRole").textContent = currentUser.role;
-      renderNav();
-      setActiveTab("dashboard");
-    }
-  </script>
-</body>
-</html>
+    function renderAgendaPending(summary) {
+      if (!agendaPendingPanel) return;
+      renderPendingTasksList(pendingTodayList, summary.tasksToday, "No tienes tareas pendientes hoy.");
+      renderPendingTasksList(pendingNext7List, summary.tasksNext7, "Sin tareas pendientes en los próximos 7 días.");
+    function toggleTaskDone(taskId, done, sourceControl) {
+      if (!canUserToggleTask(t)) {
+        if (sourceControl) sourceControl.checked = !!t.done;
+        alert("No tienes permisos para marcar esta tarea.");
+        return;
+      }
+      t.done = !!done;
+      if (t.done) {
+        t.doneBy = currentUser ? (currentUser.nombre || currentUser.username) : null;
+        t.doneAt = new Date().toISOString();
+      } else {
+        t.doneBy = null;
+        t.doneAt = null;
+      }
+      const summary = getPendingTasksSummary(visibles);
+      renderTasksBanner(visibles, tasksBanner, { showEmpty: true });
+      renderTasksBanner(visibles, tasksBannerGlobal, { showEmpty: false, showButton: true });
+      renderAgendaPending(summary);
+      const resumen = {};
+          const key = e.personaKey || e.username || "otro";
+          resumen[key] = (resumen[key] || 0) + h;
+      return resumen;
+      const resumenParts = Object.entries(resumen).map(([key, horas]) => {
+        const persona = USERS.find(u => u.personaKey === key || u.username === key);
+        const nombre = persona ? (persona.nombre || persona.username) : key;
+        return `${nombre}: ${formatDurationHours(horas)}`;
+      });
+      summaryAdminSemana.textContent = resumenParts.length
+        ? resumenParts.join(" · ")
+        : "Sin fichajes cerrados esta semana.";
+          const persona = USERS.find(u => u.personaKey === e.personaKey || u.username === e.username);
+          const personaNombre = persona ? (persona.nombre || persona.username) : (e.personaKey || e.username || "Empleado");
+    const usernameInput = document.getElementById("username");
+      normalizeTasksData();
+      const username = usernameInput.value;
