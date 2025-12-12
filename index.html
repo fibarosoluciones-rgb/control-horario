@@ -918,6 +918,38 @@
   font-weight: 400;
 }
 
+.tasks-banner {
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.75rem;
+  background: rgba(234, 179, 8, 0.08);
+  border: 1px solid rgba(234, 179, 8, 0.5);
+  font-size: 0.85rem;
+}
+
+.tasks-banner-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.tasks-banner-section {
+  margin-top: 0.35rem;
+}
+
+.tasks-banner-item {
+  margin-top: 0.15rem;
+}
+
+.tasks-banner-item-strong {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.agenda-task-done {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+
 .agenda-week-header {
   margin-bottom: 0.6rem;
 }
@@ -1051,87 +1083,7 @@
   }
 }
 
-  
-.task-banner {
-  margin: 0.75rem 1.25rem 0.25rem 1.25rem;
-  padding: 0.85rem 1rem;
-  border-radius: 0.9rem;
-  background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(16,185,129,0.09));
-  border: 1px solid rgba(59,130,246,0.35);
-  display: none;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.task-banner.visible {
-  display: flex;
-}
-
-.task-banner-main {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.task-banner-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-strong);
-}
-
-.task-banner-sub {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-.task-banner-counts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.25rem;
-}
-
-.task-chip {
-  font-size: 0.75rem;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  background: rgba(15,23,42,0.03);
-  border: 1px solid rgba(148,163,184,0.6);
-}
-
-.task-banner-cta {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.task-banner-cta button {
-  white-space: nowrap;
-}
-
-.task-banner-dot {
-  width: 0.6rem;
-  height: 0.6rem;
-  border-radius: 999px;
-  background: #22c55e;
-  box-shadow: 0 0 0 0 rgba(34,197,94,0.5);
-  animation: taskPulse 1.6s infinite;
-}
-
-@keyframes taskPulse {
-  0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
-  70% { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
-  100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
-}
-
-@media (max-width: 700px) {
-  .task-banner {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-}
-</style>
+  </style>
 </head>
 <body>
   <div class="app-root">
@@ -1145,33 +1097,21 @@
         <div>
           <h1 class="login-title">
             Control horario<br />
-            <span>Oficina</span>
+            <span>Alicia &amp; María</span>
           </h1>
           <p class="login-sub">
             Inicia sesión como <strong>admin</strong> o como trabajadora para ver turnos,
             fichar jornada, pedir vacaciones y revisar el calendario.
           </p>
         </div>
-
         <form id="loginForm" class="login-form">
           <div class="field-group">
             <label class="field-label" for="username">Usuario</label>
-            <input
-              id="username"
-              class="field-input"
-              autocomplete="username"
-              placeholder="Tu usuario (ej. alicia)"
-            />
+            <input id="username" class="field-input" type="text" autocomplete="username" placeholder="Escribe tu usuario" />
           </div>
           <div class="field-group">
             <label class="field-label" for="password">Contraseña</label>
-            <input
-              id="password"
-              type="password"
-              class="field-input"
-              autocomplete="current-password"
-              placeholder="••••••••"
-            />
+            <input id="password" type="password" class="field-input" placeholder="••••••••" autocomplete="current-password" />
           </div>
           <div id="loginError" class="error-msg" style="display:none;"></div>
           <button type="submit" class="btn btn-primary" style="width:100%;">
@@ -1208,24 +1148,6 @@
           </div>
         </div>
       </header>
-      <div id="taskBanner" class="task-banner">
-        <div class="task-banner-main">
-          <div class="task-banner-title">
-            🔔 Tareas pendientes en tu agenda
-          </div>
-          <div class="task-banner-sub" id="taskBannerMessage">
-            Hoy no tienes tareas pendientes. Disfruta el día 😄
-          </div>
-          <div class="task-banner-counts" id="taskBannerCounts"></div>
-        </div>
-        <div class="task-banner-cta">
-          <span class="task-banner-dot"></span>
-          <button id="taskBannerBtn" class="btn btn-ghost btn-small">
-            Ver tareas
-          </button>
-        </div>
-      </div>
-
 
       <nav class="tabs">
         <button id="tabHorario" class="tab-btn active">
@@ -1402,107 +1324,6 @@
             <div id="listaHistorico" class="request-list"></div>
           </div>
         </section>
-        <!-- Panel admin: gestión de usuarios -->
-        <section id="panelAdminUsuarios" class="panel hidden">
-          <div class="panel-header">
-            <div>
-              <h3 class="panel-title">Gestión de usuarios</h3>
-              <p class="panel-sub">
-                Crea, modifica y elimina usuarios con acceso al panel horario.
-              </p>
-            </div>
-            <div class="panel-tag">Admin · Usuarios</div>
-          </div>
-          <div class="panel-body">
-            <div class="panel-sub" style="margin-bottom:0.4rem;">
-              Lista de usuarios
-            </div>
-            <div class="log-table-wrapper">
-              <table class="log-table" id="tablaUsuariosAdmin">
-                <thead>
-                  <tr>
-                    <th>Usuario</th>
-                    <th>Nombre</th>
-                    <th>Rol</th>
-                    <th>Persona key</th>
-                    <th>Objetivo semanal (h)</th>
-                    <th>Activo</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-
-            <hr style="border-color: rgba(148,163,184,0.4); margin:1rem 0;" />
-
-            <div class="panel-sub" style="margin-bottom:0.4rem;">
-              Crear / editar usuario
-            </div>
-
-            <form id="formUsuarioAdmin" class="login-form">
-              <input type="hidden" id="userIdEdit" />
-
-              <div class="field-group">
-                <label class="field-label" for="userUsername">Usuario (login)</label>
-                <input id="userUsername" class="field-input" placeholder="ej: alicia" />
-              </div>
-
-              <div class="field-group">
-                <label class="field-label" for="userPassword">Contraseña</label>
-                <input id="userPassword" type="password" class="field-input" placeholder="••••••••" />
-              </div>
-
-              <div class="field-group">
-                <label class="field-label" for="userNombre">Nombre visible</label>
-                <input id="userNombre" class="field-input" placeholder="Nombre que se muestra en la UI" />
-              </div>
-
-              <div class="field-group">
-                <label class="field-label" for="userRol">Rol</label>
-                <select id="userRol" class="field-select">
-                  <option value="empleado">Personal oficina</option>
-                  <option value="tecnico">Personal técnico</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-
-              <div class="field-group">
-                <label class="field-label" for="userPersonaKey">
-                  Persona key
-                  <span class="hint-inline">(para vacaciones / fichajes)</span>
-                </label>
-                <input id="userPersonaKey" class="field-input" placeholder="ej: alicia, maria, juan..." />
-              </div>
-
-              <div class="field-group">
-                <label class="field-label" for="userObjetivo">
-                  Objetivo semanal (horas)
-                </label>
-                <input id="userObjetivo" type="number" min="0" class="field-input" placeholder="ej: 40" />
-              </div>
-
-              <div class="field-group">
-                <label class="field-label" for="userActivo">Activo</label>
-                <select id="userActivo" class="field-select">
-                  <option value="true">Sí</option>
-                  <option value="false">No</option>
-                </select>
-              </div>
-
-              <div id="userAdminError" class="error-msg" style="display:none;"></div>
-
-              <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
-                <button type="submit" class="btn btn-primary btn-small">
-                  Guardar usuario
-                </button>
-                <button type="button" id="btnResetUsuarioForm" class="btn btn-ghost btn-small">
-                  Limpiar formulario
-                </button>
-              </div>
-            </form>
-          </div>
-        </section>
       </section>
 
 
@@ -1518,20 +1339,8 @@
             </div>
             <div class="panel-tag">Agenda</div>
           </div>
-          
-          <div class="panel-body" id="panelAgendaPendiente">
-            <div class="panel-sub" style="margin-bottom:0.4rem;">
-              Tareas pendientes para ti
-            </div>
-            <div id="agendaPendienteHoy" class="agenda-list"></div>
-            <div style="height:0.5rem;"></div>
-            <div class="panel-sub" style="margin-bottom:0.2rem;">
-              Próximos 7 días
-            </div>
-            <div id="agendaPendienteProx" class="agenda-list"></div>
-            <hr style="border-color: rgba(148,163,184,0.35); margin:0.9rem 0 0.7rem 0;" />
-          </div>
-<div class="panel-body">
+          <div class="panel-body">
+            <div id="tasksBanner" class="tasks-banner"></div>
             <div class="agenda-layout">
               <div class="agenda-form">
                 <h4 class="agenda-form-title">Nueva tarea</h4>
@@ -1710,38 +1519,7 @@
     </section>
   </div>
 
-  <script type="module">
-    // =========================
-    // Firebase: imports + config
-    // =========================
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-    import {
-      getFirestore,
-      doc,
-      getDoc,
-      setDoc,
-      collection,
-      getDocs,
-      addDoc,
-      updateDoc,
-      deleteDoc,
-      query,
-      where
-    } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyB_DvfW395pemIz9kLZBtCqhQpouHDenYo",
-      authDomain: "horarios-84ca8.firebaseapp.com",
-      projectId: "horarios-84ca8",
-      storageBucket: "horarios-84ca8.firebasestorage.app",
-      messagingSenderId: "899817963772",
-      appId: "1:899817963772:web:a7a33b7376ab1f9d415779"
-    };
-
-    const firebaseApp = initializeApp(firebaseConfig);
-    const db = getFirestore(firebaseApp);
-
-
+  <script>
     // =========================
     // Datos del cuadrante (desde tu Excel)
     // =========================
@@ -1772,13 +1550,17 @@
     const baseRangeStart = base4Weeks.start;
     const baseRangeEnd = base4Weeks.end;
 
-    
     // =========================
-    // Usuarios y roles (via Firebase)
+    // Usuarios y roles
     // =========================
-
-    // Este array se rellenará desde Firestore (colección "users")
-    let USERS = [];
+    const USERS = [
+      { username: "admin",  password: "admin123",  role: "admin",    nombre: "Administrador" },
+      { username: "keño",   password: "keno123",   role: "admin",    nombre: "Keño" },
+      { username: "mejias", password: "mejias123", role: "admin",    nombre: "Mejías" },
+      { username: "alicia", password: "alicia123", role: "empleado", nombre: "Alicia", personaKey: "alicia", objetivoSemanal: 35 },
+      { username: "maria",  password: "maria123",  role: "empleado", nombre: "María",  personaKey: "maria",  objetivoSemanal: 40 },
+      { username: "tecnico", password: "tecnico123", role: "tecnico", nombre: "Técnico", objetivoSemanal: 40 }
+    ];
 
     const ROLE_LABELS = {
       admin: "Admin",
@@ -1786,117 +1568,82 @@
       tecnico: "Personal técnico"
     };
 
-    // Clave en localStorage SOLO para recordar quién está logueado
+    const STORAGE_KEY_STATE = "controlHorarioVacaciones_state_v3";
     const STORAGE_KEY_USER = "controlHorarioVacaciones_user_v3";
+    const STORAGE_KEY_USERS = "controlHorarioVacaciones_users_v1";
 
-    // Estado global que antes iba a localStorage y ahora va a Firestore
+    function loadUsersFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_USERS);
+        if (!raw) return;
+        const arr = JSON.parse(raw);
+        if (!Array.isArray(arr)) return;
+        // Vaciar y rellenar el array manteniendo la referencia
+        USERS.length = 0;
+        arr.forEach(u => {
+          if (u && u.username && u.password && u.role) {
+            USERS.push(u);
+          }
+        });
+      } catch (e) {
+        console.error("Error cargando usuarios", e);
+      }
+    }
+
+    function saveUsersToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(USERS));
+      } catch (e) {
+        console.error("Error guardando usuarios", e);
+      }
+    }
+
+
     let appState = {
-      vacationRequests: [], // solicitudes de vacaciones
-      timeEntries: [],      // fichajes
-      vacationCounters: {}, // días totales por persona
-      tasks: []             // agenda
+      vacationRequests: [],
+      timeEntries: [],        // control horario
+      vacationCounters: {},   // días totales por persona (alicia, maria, etc.)
+      tasks: []               // agenda compartida
     };
-
     let currentUser = null;
 
-    // -------------------------
-    // Usuarios en Firestore
-    // -------------------------
-
-    async function loadUsersFromFirestore() {
-      const snap = await getDocs(collection(db, "users"));
-      USERS = snap.docs.map(d => ({
-        id: d.id,
-        ...d.data()
-      }));
-    }
-
-    // Si no hay ningún usuario en Firestore, crea un admin por defecto
-    async function ensureDefaultUsers() {
-      const colRef = collection(db, "users");
-
-      const defaultUsers = [
-        {
-          username: "admin",
-          password: "admin123",
-          role: "admin",
-          nombre: "Administrador",
-          personaKey: "admin",
-          objetivoSemanal: 40,
-          activo: true
-        },
-        {
-          username: "alicia",
-          password: "alicia123",
-          role: "empleado",
-          nombre: "Alicia",
-          personaKey: "alicia",
-          objetivoSemanal: 35,
-          activo: true
-        },
-        {
-          username: "maria",
-          password: "maria123",
-          role: "empleado",
-          nombre: "María",
-          personaKey: "maria",
-          objetivoSemanal: 40,
-          activo: true
-        }
-      ];
-
-      for (const u of defaultUsers) {
-        const q = query(colRef, where("username", "==", u.username));
-        const snap = await getDocs(q);
-        if (snap.empty) {
-          await addDoc(colRef, u);
-        }
-      }
-    }
-
-    // -------------------------
-    // Estado global en Firestore
-    // -------------------------
-
-    async function loadState() {
+    function loadState() {
       try {
-        const ref = doc(db, "config", "globalState");
-        const snap = await getDoc(ref);
-        if (!snap.exists()) {
-          // Si no existe, inicializamos vacío y lo subimos
-          await setDoc(ref, appState);
-          return;
+        const raw = localStorage.getItem(STORAGE_KEY_STATE);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (parsed) {
+          if (Array.isArray(parsed.vacationRequests)) {
+            appState.vacationRequests = parsed.vacationRequests;
+          }
+          if (Array.isArray(parsed.timeEntries)) {
+            appState.timeEntries = parsed.timeEntries;
+          }
+          if (parsed.vacationCounters && typeof parsed.vacationCounters === "object") {
+            appState.vacationCounters = parsed.vacationCounters;
+          }
+          if (Array.isArray(parsed.tasks)) {
+            appState.tasks = parsed.tasks;
+          }
         }
-        const data = snap.data() || {};
-        appState.vacationRequests = Array.isArray(data.vacationRequests) ? data.vacationRequests : [];
-        appState.timeEntries      = Array.isArray(data.timeEntries)      ? data.timeEntries      : [];
-        appState.vacationCounters = data.vacationCounters && typeof data.vacationCounters === "object"
-          ? data.vacationCounters
-          : {};
-        appState.tasks            = Array.isArray(data.tasks)            ? data.tasks            : [];
       } catch (e) {
-        console.error("Error cargando estado desde Firestore", e);
+        console.error("Error cargando estado", e);
       }
     }
 
-    async function saveState() {
+    function saveState() {
       try {
-        const ref = doc(db, "config", "globalState");
-        await setDoc(ref, appState);
+        localStorage.setItem(STORAGE_KEY_STATE, JSON.stringify(appState));
       } catch (e) {
-        console.error("Error guardando estado en Firestore", e);
+        console.error("Error guardando estado", e);
       }
     }
-
-    // -------------------------
-    // Helpers relacionados
-    // -------------------------
 
     function ensureVacationCountersForEmployees() {
       if (!appState.vacationCounters || typeof appState.vacationCounters !== "object") {
         appState.vacationCounters = {};
       }
-      USERS.filter(u => u.role === "empleado").forEach(u => {
+      USERS.filter(u => u.role === "empleado" || u.role === "tecnico").forEach(u => {
         const key = u.personaKey || u.username;
         if (!appState.vacationCounters[key]) {
           appState.vacationCounters[key] = { totalDays: 0 };
@@ -1910,7 +1657,6 @@
       }
     }
 
-    // Usuario actual en localStorage (solo username)
     function loadCurrentUser() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY_USER);
@@ -1930,12 +1676,69 @@
         localStorage.removeItem(STORAGE_KEY_USER);
         return;
       }
-      localStorage.setItem(
-        STORAGE_KEY_USER,
-        JSON.stringify({ username: currentUser.username })
-      );
+      localStorage.setItem(STORAGE_KEY_USER, JSON.stringify({ username: currentUser.username }));
     }
-function getVacationStatusForDate(personaKey, fechaISO) {
+
+    // =========================
+    // Utilidades de fechas
+    // =========================
+    function formatearFechaISOaBonito(iso) {
+      const d = new Date(iso + "T00:00:00");
+      if (isNaN(d.getTime())) return iso;
+      return d.toLocaleDateString("es-ES", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      });
+    }
+
+    function construirRangoTexto(start, end) {
+      if (!start && !end) return "Mostrando todos los días";
+      if (start && !end)
+        return `Mostrando desde el ${formatearFechaISOaBonito(start)}`;
+      if (!start && end)
+        return `Mostrando hasta el ${formatearFechaISOaBonito(end)}`;
+      return `De ${formatearFechaISOaBonito(start)} a ${formatearFechaISOaBonito(end)}`;
+    }
+
+    function hoyISO() {
+      const d = new Date();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${d.getFullYear()}-${m}-${day}`;
+    }
+
+    function mesActualRangoISO() {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = d.getMonth();
+      const first = new Date(year, month, 1);
+      const last = new Date(year, month + 1, 0);
+      const s = `${year}-${String(month+1).padStart(2,"0")}-${String(first.getDate()).padStart(2,"0")}`;
+      const e = `${year}-${String(month+1).padStart(2,"0")}-${String(last.getDate()).padStart(2,"0")}`;
+      return [s,e];
+    }
+
+    function getISOWeekYear(date) {
+      const tmp = new Date(date.getTime());
+      tmp.setHours(0,0,0,0);
+      tmp.setDate(tmp.getDate() + 3 - ((tmp.getDay() + 6) % 7));
+      const week1 = new Date(tmp.getFullYear(), 0, 4);
+      const week = 1 + Math.round(((tmp.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
+      return { year: tmp.getFullYear(), week };
+    }
+
+    function getWeekKeyFromISO(iso) {
+      const d = new Date(iso + "T00:00:00");
+      if (isNaN(d.getTime())) return null;
+      const w = getISOWeekYear(d);
+      return `${w.year}-W${String(w.week).padStart(2,"0")}`;
+    }
+
+    // =========================
+    // Vacaciones: helpers
+    // =========================
+    function getVacationStatusForDate(personaKey, fechaISO) {
       const approved = appState.vacationRequests.filter(r =>
         r.personaKey === personaKey &&
         r.estado === "aprobada" &&
@@ -1983,28 +1786,7 @@ function getVacationStatusForDate(personaKey, fechaISO) {
       return { total, used, remaining };
     }
 
-    
-    function hoyISO() {
-      const d = new Date();
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
-    }
-
-    function formatearFechaISOaBonito(iso) {
-      if (!iso) return "";
-      const [year, month, day] = iso.split("-");
-      const d = new Date(Number(year), Number(month) - 1, Number(day));
-      if (isNaN(d.getTime())) return iso;
-      return d.toLocaleDateString("es-ES", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric"
-      });
-    }
-
-const HORAS_EXCEPCIONAL = 8;
+    const HORAS_EXCEPCIONAL = 8;
     const TEXTO_EXCEPCIONAL = "08:30 – 13:30 · 15:00 – 18:00";
 
     // =========================
@@ -2187,7 +1969,7 @@ const HORAS_EXCEPCIONAL = 8;
         filtered = filtered.filter((d) => d.fecha <= end);
       }
 
-      if (currentUser && (currentUser.role === "empleado" || currentUser.role === "tecnico")) {
+      if (currentUser && currentUser.role === "empleado") {
         const personaKey = currentUser.personaKey;
         if (personaKey === "alicia") {
           filtered = filtered.filter(d => d.alicia);
@@ -2222,7 +2004,7 @@ const HORAS_EXCEPCIONAL = 8;
         if (!vacM && d.maria && typeof d.maria.horas === "number") horasMaria += d.maria.horas;
       });
 
-      if (currentUser && (currentUser.role === "empleado" || currentUser.role === "tecnico")) {
+      if (currentUser && currentUser.role === "empleado") {
         if (currentUser.personaKey === "alicia") {
           totalHoursLabel.textContent = `Alicia: ${horasAlicia} h en el rango`;
         } else if (currentUser.personaKey === "maria") {
@@ -2373,7 +2155,15 @@ const HORAS_EXCEPCIONAL = 8;
         "status-pendiente";
 
       const dias = diasEntre(r.desde, r.hasta);
-      const nombrePersona = r.personaKey === "alicia" ? "Alicia" : "María";
+      let nombrePersona;
+      if (r.personaKey === "alicia") {
+        nombrePersona = "Alicia";
+      } else if (r.personaKey === "maria") {
+        nombrePersona = "María";
+      } else {
+        const empleado = USERS.find(u => u.username === r.empleadoUsername);
+        nombrePersona = empleado ? (empleado.nombre || empleado.username) : (r.empleadoUsername || "Empleado");
+      }
 
       card.innerHTML = `
         <div class="request-header">
@@ -2422,27 +2212,23 @@ const HORAS_EXCEPCIONAL = 8;
         actions.appendChild(btnOk);
         actions.appendChild(btnNo);
         card.appendChild(actions);
-      }
-
-      // Botón extra para admin en histórico: eliminar vacaciones aprobadas
-      if (!esAdminListaPendiente && currentUser && currentUser.role === "admin" && r.estado === "aprobada") {
-        const actions = document.createElement("div");
-        actions.className = "request-actions";
+      } else if (r.estado === "aprobada") {
+        const actionsHist = document.createElement("div");
+        actionsHist.className = "request-actions";
         const btnDel = document.createElement("button");
-        btnDel.className = "btn btn-danger btn-small";
-        btnDel.textContent = "Eliminar vacaciones";
+        btnDel.className = "btn btn-ghost btn-small btn-danger";
+        btnDel.textContent = "Eliminar del histórico";
         btnDel.addEventListener("click", () => {
-          const ok = confirm("¿Eliminar esta solicitud aprobada? Se liberarán los días de vacaciones asociados.");
-          if (ok) {
-            eliminarSolicitudVacacion(r.id);
-          }
+          if (!confirm("¿Eliminar esta solicitud aprobada? Esto no restaura automáticamente los días disponibles, deberás ajustar el contador si procede.")) return;
+          eliminarSolicitudVacaciones(r.id);
         });
-        actions.appendChild(btnDel);
-        card.appendChild(actions);
+        actionsHist.appendChild(btnDel);
+        card.appendChild(actionsHist);
       }
 
       return card;
     }
+
 
     function actualizarEstadoSolicitud(id, nuevoEstado) {
       const idx = appState.vacationRequests.findIndex(r => r.id === id);
@@ -2459,7 +2245,7 @@ const HORAS_EXCEPCIONAL = 8;
       aplicarFiltrosHorario();
     }
 
-    function eliminarSolicitudVacacion(id) {
+    function eliminarSolicitudVacaciones(id) {
       const idx = appState.vacationRequests.findIndex(r => r.id === id);
       if (idx === -1) return;
       appState.vacationRequests.splice(idx, 1);
@@ -2471,7 +2257,7 @@ const HORAS_EXCEPCIONAL = 8;
     }
 
     function crearSolicitudVacaciones() {
-      if (!currentUser || currentUser.role !== "empleado") return;
+      if (!currentUser || (currentUser.role !== "empleado" && currentUser.role !== "tecnico")) return;
 
       const desde = vacStartInput.value;
       const hasta = vacEndInput.value;
@@ -2521,8 +2307,6 @@ const HORAS_EXCEPCIONAL = 8;
     // =========================
     const agendaSemana = document.getElementById("agendaSemana");
     const agendaLista = document.getElementById("agendaLista");
-    const agendaPendienteHoy = document.getElementById("agendaPendienteHoy");
-    const agendaPendienteProx = document.getElementById("agendaPendienteProx");
     const taskTitleInput = document.getElementById("taskTitle");
     const taskDateInput = document.getElementById("taskDate");
     const taskTimeInput = document.getElementById("taskTime");
@@ -2530,11 +2314,6 @@ const HORAS_EXCEPCIONAL = 8;
     const taskSharedWithSelect = document.getElementById("taskSharedWith");
     const taskError = document.getElementById("taskError");
     const btnCrearTarea = document.getElementById("btnCrearTarea");
-
-    const taskBanner = document.getElementById("taskBanner");
-    const taskBannerMessage = document.getElementById("taskBannerMessage");
-    const taskBannerCounts = document.getElementById("taskBannerCounts");
-    const taskBannerBtn = document.getElementById("taskBannerBtn");
 
     function populateSharedWithSelect() {
       if (!taskSharedWithSelect) return;
@@ -2602,9 +2381,7 @@ const HORAS_EXCEPCIONAL = 8;
         createdBy: currentUser.username,
         sharedWith,
         createdEn: new Date().toISOString(),
-        done: false,
-        doneBy: null,
-        doneAt: null
+        done: false
       };
       nueva.weekKey = getWeekKeyFromISO(fecha);
 
@@ -2621,163 +2398,7 @@ const HORAS_EXCEPCIONAL = 8;
       btnCrearTarea.addEventListener("click", crearTareaAgenda);
     }
 
-    
-    function renderTaskListForContainer(tasks, container) {
-      if (!container) return;
-      container.innerHTML = "";
-
-      if (!tasks.length) {
-        const empty = document.createElement("div");
-        empty.className = "agenda-list-empty";
-        empty.textContent = "No hay tareas pendientes.";
-        container.appendChild(empty);
-        return;
-      }
-
-      const sorted = tasks.slice().sort((a,b) => {
-        const aKey = (a.fecha || "") + " " + (a.hora || "00:00");
-        const bKey = (b.fecha || "") + " " + (b.hora || "00:00");
-        return aKey.localeCompare(bKey);
-      });
-
-      sorted.forEach(t => {
-        const row = document.createElement("div");
-        row.className = "agenda-list-item";
-
-        const fechaBonita = t.fecha ? formatearFechaISOaBonito(t.fecha) : "-";
-        const horaText = t.hora ? t.hora : "--:--";
-
-        let extraInfo = "";
-        if (t.descripcion) {
-          extraInfo += `<div class="agenda-list-desc">${t.descripcion}</div>`;
-        }
-
-        if (t.done) {
-          extraInfo += `<div class="agenda-list-meta">✅ Marcada como hecha por ${t.doneBy || "alguien"} el ${t.doneAt ? formatearFechaISOaBonito(t.doneAt.slice(0,10)) : ""}</div>`;
-        }
-
-        const canToggle = currentUser &&
-          (currentUser.role === "admin" ||
-           t.createdBy === currentUser.username ||
-           (Array.isArray(t.sharedWith) && t.sharedWith.includes(currentUser.username)));
-
-        let actionsHTML = "";
-        if (canToggle) {
-          if (!t.done) {
-            actionsHTML = `<button class="btn btn-ghost btn-small" data-task-id="${t.id}" data-action="done">Marcar como hecha</button>`;
-          } else {
-            actionsHTML = `<button class="btn btn-ghost btn-small" data-task-id="${t.id}" data-action="undone">Marcar como pendiente</button>`;
-          }
-        }
-
-        row.innerHTML = `
-          <div class="agenda-list-main">
-            <div class="agenda-list-title">${t.titulo}</div>
-            <div class="agenda-list-meta">
-              ${fechaBonita} · ${horaText}
-            </div>
-          </div>
-          <div class="agenda-list-extra">
-            ${extraInfo}
-          </div>
-          <div class="agenda-list-actions">
-            ${actionsHTML}
-          </div>
-        `;
-
-        const btn = row.querySelector("button[data-task-id]");
-        if (btn) {
-          btn.addEventListener("click", () => {
-            const action = btn.getAttribute("data-action");
-            const markDone = action === "done";
-            toggleTaskDone(t.id, markDone);
-          });
-        }
-
-        container.appendChild(row);
-      });
-    }
-
-    function toggleTaskDone(taskId, done) {
-      ensureTasksArray();
-      const idx = appState.tasks.findIndex(t => t.id === taskId);
-      if (idx === -1) return;
-      const t = appState.tasks[idx];
-      t.done = done;
-      if (done) {
-        t.doneBy = currentUser ? (currentUser.nombre || currentUser.username) : null;
-        t.doneAt = new Date().toISOString();
-      } else {
-        t.doneBy = null;
-        t.doneAt = null;
-      }
-      saveState();
-      renderAgenda();
-      updateTaskBanner();
-    }
-
-    function updateTaskBanner() {
-      if (!taskBanner || !currentUser) return;
-      ensureTasksArray();
-      const visibles = getTasksVisibleToCurrentUser().filter(t => !t.done);
-
-      if (!visibles.length) {
-        taskBanner.classList.remove("visible");
-        taskBannerCounts.innerHTML = "";
-        taskBannerMessage.textContent = "Hoy no tienes tareas pendientes. Disfruta el día 😄";
-        return;
-      }
-
-      const hoy = hoyISO();
-      const hoyDate = new Date(hoy + "T00:00:00");
-      const sieteDiasDespues = new Date(hoyDate);
-      sieteDiasDespues.setDate(hoyDate.getDate() + 7);
-
-      const tareasHoy = [];
-      const tareasProx = [];
-
-      visibles.forEach(t => {
-        if (!t.fecha) return;
-        const d = new Date(t.fecha + "T00:00:00");
-        if (t.fecha === hoy) {
-          tareasHoy.push(t);
-        } else if (d >= hoyDate && d <= sieteDiasDespues) {
-          tareasProx.push(t);
-        }
-      });
-
-      taskBanner.classList.add("visible");
-
-      if (tareasHoy.length) {
-        taskBannerMessage.textContent = `Tienes ${tareasHoy.length} tarea(s) para hoy.`;
-      } else if (tareasProx.length) {
-        taskBannerMessage.textContent = `No tienes tareas para hoy, pero sí ${tareasProx.length} en los próximos días.`;
-      } else {
-        taskBannerMessage.textContent = "Tienes tareas pendientes más adelante en el calendario.";
-      }
-
-      const chips = [];
-      if (tareasHoy.length) {
-        chips.push(`<span class="task-chip">Hoy: ${tareasHoy.length}</span>`);
-      }
-      if (tareasProx.length) {
-        chips.push(`<span class="task-chip">Próximos 7 días: ${tareasProx.length}</span>`);
-      }
-      taskBannerCounts.innerHTML = chips.join("");
-
-      if (taskBannerBtn) {
-        taskBannerBtn.onclick = () => {
-          setActiveTab("agenda");
-        };
-      }
-
-      // Rellenar panel pendiente en agenda
-      if (agendaPendienteHoy || agendaPendienteProx) {
-        renderTaskListForContainer(tareasHoy, agendaPendienteHoy);
-        renderTaskListForContainer(tareasProx, agendaPendienteProx);
-      }
-    }
-function renderAgendaWeek(tasks) {
+    function renderAgendaWeek(tasks) {
       if (!agendaSemana) return;
       agendaSemana.innerHTML = "";
 
@@ -2823,7 +2444,7 @@ function renderAgendaWeek(tasks) {
             })
             .forEach(t => {
               const item = document.createElement("div");
-              item.className = "agenda-task-pill";
+              item.className = "agenda-task-pill" + (t.done ? " agenda-task-done" : "");
               const horaText = t.hora ? t.hora + " · " : "";
               const creator = USERS.find(u => u.username === t.createdBy);
               const creatorName = creator ? (creator.nombre || creator.username) : t.createdBy;
@@ -2895,7 +2516,103 @@ function renderAgendaWeek(tasks) {
           </div>
         `;
         agendaLista.appendChild(row);
+
+        // Estado de la tarea (hecha / pendiente)
+        const titleEl = row.querySelector(".agenda-list-title");
+        if (t.done && titleEl) {
+          titleEl.classList.add("agenda-task-done");
+        }
+
+        const actions = document.createElement("div");
+        actions.style.marginTop = "0.35rem";
+        actions.style.fontSize = "0.75rem";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = !!t.done;
+        checkbox.addEventListener("change", () => {
+          toggleTaskDone(t.id, checkbox.checked);
+        });
+
+        const label = document.createElement("span");
+        label.style.marginLeft = "0.35rem";
+        label.textContent = "Marcar como hecha";
+
+        actions.appendChild(checkbox);
+        actions.appendChild(label);
+        row.appendChild(actions);
       });
+    }
+
+
+    function getPendingTasksSummary(visibles) {
+      const today = hoyISO();
+      const todayDate = new Date(today + "T00:00:00");
+      const next7Date = new Date(todayDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+      const isPending = (t) => !t.done;
+
+      const tasksToday = visibles.filter(t => {
+        if (!isPending(t) || !t.fecha) return false;
+        return t.fecha === today;
+      });
+
+      const tasksNext7 = visibles.filter(t => {
+        if (!isPending(t) || !t.fecha) return false;
+        if (t.fecha <= today) return false;
+        const d = new Date(t.fecha + "T00:00:00");
+        if (isNaN(d.getTime())) return false;
+        return d <= next7Date;
+      });
+
+      return { tasksToday, tasksNext7 };
+    }
+
+    function renderTasksBanner(visibles) {
+      const banner = document.getElementById("tasksBanner");
+      if (!banner) return;
+
+      const { tasksToday, tasksNext7 } = getPendingTasksSummary(visibles);
+      const total = tasksToday.length + tasksNext7.length;
+
+      if (total === 0) {
+        banner.innerHTML = '<div class="tasks-banner"><div class="tasks-banner-title">✅ No tienes tareas pendientes próximas.</div></div>';
+        return;
+      }
+
+      let html = '<div class="tasks-banner">';
+      html += '<div class="tasks-banner-title">🔔 Tareas pendientes</div>';
+
+      if (tasksToday.length > 0) {
+        html += '<div class="tasks-banner-section"><div class="tasks-banner-item-strong">Para hoy:</div>';
+        tasksToday.forEach(t => {
+          const hora = t.hora ? (' · ' + t.hora) : '';
+          html += `<div class="tasks-banner-item">• ${t.titulo}${hora}</div>`;
+        });
+        html += '</div>';
+      }
+
+      if (tasksNext7.length > 0) {
+        html += '<div class="tasks-banner-section"><div class="tasks-banner-item-strong">Próximos 7 días:</div>';
+        tasksNext7.forEach(t => {
+          const fecha = formatearFechaISOaBonito(t.fecha);
+          const hora = t.hora ? (' · ' + t.hora) : '';
+          html += `<div class="tasks-banner-item">• ${fecha}: ${t.titulo}${hora}</div>`;
+        });
+        html += '</div>';
+      }
+
+      html += '</div>';
+      banner.innerHTML = html;
+    }
+
+    function toggleTaskDone(taskId, done) {
+      ensureTasksArray();
+      const t = appState.tasks.find(tt => tt.id === taskId);
+      if (!t) return;
+      t.done = done;
+      saveState();
+      renderAgenda();
     }
 
     function renderAgenda() {
@@ -2915,9 +2632,9 @@ function renderAgendaWeek(tasks) {
         return t.weekKey === currentWeekKey;
       });
 
+      renderTasksBanner(visibles);
       renderAgendaWeek(weekTasks);
       renderAgendaLista(visibles);
-      updateTaskBanner();
     }
 // Control horario (timeEntries)
     // =========================
@@ -3028,8 +2745,10 @@ function renderAgendaWeek(tasks) {
     }
 
     function updateEmpleadoControlUI() {
-      if (!currentUser || currentUser.role !== "empleado") return;
-      const objetivo = currentUser.objetivoSemanal || (currentUser.personaKey === "alicia" ? TARGET_ALICIA : TARGET_MARIA);
+      if (!currentUser || (currentUser.role !== "empleado" && currentUser.role !== "tecnico")) return;
+      const objetivo = (typeof currentUser.objetivoSemanal === "number" && !isNaN(currentUser.objetivoSemanal))
+        ? currentUser.objetivoSemanal
+        : (currentUser.personaKey === "alicia" ? TARGET_ALICIA : (currentUser.personaKey === "maria" ? TARGET_MARIA : TARGET_MARIA));
       chipTargetEmpleado.innerHTML = `Objetivo semanal: <strong>${objetivo} h</strong>`;
 
       const entriesWeek = getEntriesForUserCurrentWeek(currentUser.username);
@@ -3154,7 +2873,7 @@ function renderAgendaWeek(tasks) {
     }
 
     function startShiftWithLocation() {
-      if (!currentUser || currentUser.role !== "empleado") return;
+      if (!currentUser || (currentUser.role !== "empleado" && currentUser.role !== "tecnico")) return;
 
       const existing = getActiveEntryForUser(currentUser.username);
       if (existing) {
@@ -3232,7 +2951,7 @@ function renderAgendaWeek(tasks) {
     }
 
     function pauseShift() {
-      if (!currentUser || currentUser.role !== "empleado") return;
+      if (!currentUser || (currentUser.role !== "empleado" && currentUser.role !== "tecnico")) return;
       const active = getActiveEntryForUser(currentUser.username);
       if (!active) {
         estadoControlEmpleado.textContent = "No hay jornada abierta que pausar.";
@@ -3249,7 +2968,7 @@ function renderAgendaWeek(tasks) {
     }
 
     function resumeShift() {
-      if (!currentUser || currentUser.role !== "empleado") return;
+      if (!currentUser || (currentUser.role !== "empleado" && currentUser.role !== "tecnico")) return;
       const active = getActiveEntryForUser(currentUser.username);
       if (!active) {
         estadoControlEmpleado.textContent = "No hay jornada abierta que reanudar.";
@@ -3269,7 +2988,7 @@ function renderAgendaWeek(tasks) {
     }
 
     function endShift() {
-      if (!currentUser || currentUser.role !== "empleado") return;
+      if (!currentUser || (currentUser.role !== "empleado" && currentUser.role !== "tecnico")) return;
       const active = getActiveEntryForUser(currentUser.username);
       if (!active) {
         estadoControlEmpleado.textContent = "No hay jornada abierta que finalizar.";
@@ -3303,192 +3022,13 @@ function renderAgendaWeek(tasks) {
       updateAdminControlUI();
     });
 
-    
-    // =========================
-    // Admin: gestión de usuarios (Firestore)
-    // =========================
-    const tablaUsuariosAdminBody = document.querySelector("#tablaUsuariosAdmin tbody");
-    const formUsuarioAdmin = document.getElementById("formUsuarioAdmin");
-    const userIdEditInput = document.getElementById("userIdEdit");
-    const userUsernameInput = document.getElementById("userUsername");
-    const userPasswordInput = document.getElementById("userPassword");
-    const userNombreInput = document.getElementById("userNombre");
-    const userRolSelect = document.getElementById("userRol");
-    const userPersonaKeyInput = document.getElementById("userPersonaKey");
-    const userObjetivoInput = document.getElementById("userObjetivo");
-    const userActivoSelect = document.getElementById("userActivo");
-    const userAdminError = document.getElementById("userAdminError");
-    const btnResetUsuarioForm = document.getElementById("btnResetUsuarioForm");
-
-    function resetUsuarioForm() {
-      if (!formUsuarioAdmin) return;
-      userIdEditInput.value = "";
-      userUsernameInput.value = "";
-      userPasswordInput.value = "";
-      userNombreInput.value = "";
-      userRolSelect.value = "empleado";
-      userPersonaKeyInput.value = "";
-      userObjetivoInput.value = "";
-      userActivoSelect.value = "true";
-      userAdminError.style.display = "none";
-      userAdminError.textContent = "";
-    }
-
-    function renderUsuariosAdmin() {
-      if (!tablaUsuariosAdminBody) return;
-      tablaUsuariosAdminBody.innerHTML = "";
-
-      USERS.forEach(u => {
-        const tr = document.createElement("tr");
-
-        const rolLabel = ROLE_LABELS[u.role] || u.role;
-        const objetivo = typeof u.objetivoSemanal === "number" ? u.objetivoSemanal : "";
-
-        tr.innerHTML = `
-          <td>${u.username}</td>
-          <td>${u.nombre || ""}</td>
-          <td>${rolLabel}</td>
-          <td>${u.personaKey || ""}</td>
-          <td>${objetivo}</td>
-          <td>${u.activo === false ? "No" : "Sí"}</td>
-          <td>
-            <button class="btn btn-ghost btn-small btn-edit-user">Editar</button>
-            <button class="btn btn-danger btn-small btn-delete-user">Eliminar</button>
-          </td>
-        `;
-
-        const btnEdit = tr.querySelector(".btn-edit-user");
-        const btnDelete = tr.querySelector(".btn-delete-user");
-
-        btnEdit.addEventListener("click", () => {
-          userIdEditInput.value = u.id || "";
-          userUsernameInput.value = u.username || "";
-          userPasswordInput.value = ""; // no mostramos la actual
-          userNombreInput.value = u.nombre || "";
-          userRolSelect.value = u.role || "empleado";
-          userPersonaKeyInput.value = u.personaKey || u.username || "";
-          userObjetivoInput.value = u.objetivoSemanal != null ? u.objetivoSemanal : "";
-          userActivoSelect.value = (u.activo === false ? "false" : "true");
-          userAdminError.style.display = "none";
-          userAdminError.textContent = "";
-        });
-
-        btnDelete.addEventListener("click", async () => {
-          if (!currentUser || currentUser.role !== "admin") return;
-          if (u.username === currentUser.username) {
-            alert("No puedes eliminar tu propio usuario mientras estás conectado.");
-            return;
-          }
-          const ok = confirm(`¿Eliminar al usuario "${u.username}"? Esta acción no se puede deshacer.`);
-          if (!ok) return;
-
-          try {
-            await deleteDoc(doc(db, "users", u.id));
-            await loadUsersFromFirestore();
-            renderUsuariosAdmin();
-          } catch (e) {
-            console.error("Error eliminando usuario", e);
-            alert("Error eliminando usuario. Revisa la consola.");
-          }
-        });
-
-        tablaUsuariosAdminBody.appendChild(tr);
-      });
-    }
-
-    if (btnResetUsuarioForm) {
-      btnResetUsuarioForm.addEventListener("click", (e) => {
-        e.preventDefault();
-        resetUsuarioForm();
-      });
-    }
-
-    if (formUsuarioAdmin) {
-      formUsuarioAdmin.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        if (!currentUser || currentUser.role !== "admin") return;
-
-        const username = (userUsernameInput.value || "").trim();
-        const password = (userPasswordInput.value || "").trim();
-        const nombre = (userNombreInput.value || "").trim();
-        const role = userRolSelect.value || "empleado";
-        const personaKey = (userPersonaKeyInput.value || "").trim() || username;
-        const objetivoSemanal = userObjetivoInput.value
-          ? Number(userObjetivoInput.value)
-          : null;
-        const activo = userActivoSelect.value === "true";
-
-        userAdminError.style.display = "none";
-        userAdminError.textContent = "";
-
-        if (!username) {
-          userAdminError.textContent = "El usuario (login) es obligatorio.";
-          userAdminError.style.display = "block";
-          return;
-        }
-
-        const isEdit = !!userIdEditInput.value;
-        if (!isEdit && !password) {
-          userAdminError.textContent = "La contraseña es obligatoria al crear usuario.";
-          userAdminError.style.display = "block";
-          return;
-        }
-
-        const existing = USERS.find(
-          u => u.username === username && u.id !== userIdEditInput.value
-        );
-        if (existing) {
-          userAdminError.textContent = "Ya existe un usuario con ese login.";
-          userAdminError.style.display = "block";
-          return;
-        }
-
-        try {
-          if (isEdit) {
-            const id = userIdEditInput.value;
-            const ref = doc(db, "users", id);
-            const updateData = {
-              username,
-              role,
-              nombre,
-              personaKey,
-              objetivoSemanal,
-              activo
-            };
-            if (password) {
-              updateData.password = password;
-            }
-            await updateDoc(ref, updateData);
-          } else {
-            await addDoc(collection(db, "users"), {
-              username,
-              password,
-              role,
-              nombre,
-              personaKey,
-              objetivoSemanal,
-              activo
-            });
-          }
-
-          await loadUsersFromFirestore();
-          renderUsuariosAdmin();
-          resetUsuarioForm();
-        } catch (e) {
-          console.error("Error guardando usuario", e);
-          userAdminError.textContent = "Error guardando usuario. Revisa la consola.";
-          userAdminError.style.display = "block";
-        }
-      });
-    }
-
     // =========================
     // Login / logout / UI
     // =========================
     const loginScreen = document.getElementById("loginScreen");
     const appShell = document.getElementById("appShell");
     const loginForm = document.getElementById("loginForm");
-    const usernameInput = document.getElementById("username");
+    const usernameSelect = document.getElementById("username");
     const passwordInput = document.getElementById("password");
     const loginError = document.getElementById("loginError");
     const userNameLabel = document.getElementById("userNameLabel");
@@ -3529,8 +3069,6 @@ function renderAgendaWeek(tasks) {
       } else if (tab === "vacaciones") {
         tabVacaciones.classList.add("active");
         viewVacaciones.classList.remove("hidden");
-        renderMisSolicitudes();
-        renderAdminSolicitudes();
       } else if (tab === "agenda") {
         tabAgenda.classList.add("active");
         viewAgenda.classList.remove("hidden");
@@ -3540,14 +3078,10 @@ function renderAgendaWeek(tasks) {
         viewControl.classList.remove("hidden");
       }
     }
-
-    function actualizarUIUsuario() {
+function actualizarUIUsuario() {
       if (!currentUser) return;
       userNameLabel.textContent = currentUser.nombre || currentUser.username;
       userRoleLabel.textContent = ROLE_LABELS[currentUser.role] || currentUser.role;
-
-      const panelAdminUsuarios = document.getElementById("panelAdminUsuarios");
-      const panelAdminTurnos = document.getElementById("panelAdminTurnos");
 
       if (currentUser.role === "admin") {
         panelEmpleado.classList.add("hidden");
@@ -3556,9 +3090,6 @@ function renderAgendaWeek(tasks) {
 
         panelControlEmpleado.classList.add("hidden");
         panelControlAdmin.classList.remove("hidden");
-
-        if (panelAdminUsuarios) panelAdminUsuarios.classList.remove("hidden");
-        if (panelAdminTurnos) panelAdminTurnos.classList.remove("hidden");
       } else {
         panelEmpleado.classList.remove("hidden");
         panelMisSolicitudes.classList.remove("hidden");
@@ -3566,9 +3097,6 @@ function renderAgendaWeek(tasks) {
 
         panelControlEmpleado.classList.remove("hidden");
         panelControlAdmin.classList.add("hidden");
-
-        if (panelAdminUsuarios) panelAdminUsuarios.classList.add("hidden");
-        if (panelAdminTurnos) panelAdminTurnos.classList.add("hidden");
       }
     }
 
@@ -3585,7 +3113,6 @@ function renderAgendaWeek(tasks) {
       updateAdminControlUI();
       updateVacationCountersUI();
       renderAgenda();
-      renderUsuariosAdmin();
     }
 
     function mostrarLogin() {
@@ -3593,33 +3120,20 @@ function renderAgendaWeek(tasks) {
       appShell.classList.add("hidden");
       loginError.style.display = "none";
       loginError.textContent = "";
-      if (passwordInput) passwordInput.value = "";
+      passwordInput.value = "";
     }
 
-    // Login usando USERS cargados desde Firestore
     loginForm.addEventListener("submit", (e) => {
       e.preventDefault();
-      const username = (usernameInput.value || "").trim();
-      const password = (passwordInput.value || "").trim();
+      const username = usernameSelect.value;
+      const password = passwordInput.value;
 
-      loginError.style.display = "none";
-      loginError.textContent = "";
-
-      if (!username || !password) {
-        loginError.textContent = "Introduce usuario y contraseña.";
-        loginError.style.display = "block";
-        return;
-      }
-
-      const user = USERS.find(
-        u => u.username === username && u.password === password && u.activo !== false
-      );
+      const user = USERS.find(u => u.username === username && u.password === password);
       if (!user) {
         loginError.textContent = "Usuario o contraseña incorrectos.";
         loginError.style.display = "block";
         return;
       }
-
       currentUser = user;
       saveCurrentUser();
       mostrarApp();
@@ -3636,26 +3150,38 @@ function renderAgendaWeek(tasks) {
     tabAgenda.addEventListener("click", () => setActiveTab("agenda"));
     tabControl.addEventListener("click", () => setActiveTab("control"));
 
-    // Inicialización principal (async)
-    document.addEventListener("DOMContentLoaded", () => {
-      (async () => {
-        await ensureDefaultUsers();
-        await loadUsersFromFirestore();
-        await loadState();
-        ensureVacationCountersForEmployees();
-        ensureTasksArray();
-        currentUser = loadCurrentUser();
-        if (currentUser) {
-          mostrarApp();
-        } else {
-          mostrarLogin();
-        }
-      })().catch(err => {
-        console.error("Error en la inicialización:", err);
-        mostrarLogin();
-      });
+    btnHoy.addEventListener("click", () => {
+      const hoy = hoyISO();
+      startInput.value = hoy;
+      endInput.value = hoy;
+      aplicarFiltrosHorario();
+    });
+    btnMesActual.addEventListener("click", () => {
+      const [s,e] = mesActualRangoISO();
+      startInput.value = s;
+      endInput.value = e;
+      aplicarFiltrosHorario();
     });
 
+    applyBtn.addEventListener("click", aplicarFiltrosHorario);
+    clearBtn.addEventListener("click", limpiarFiltrosHorario);
+    startInput.addEventListener("change", aplicarFiltrosHorario);
+    endInput.addEventListener("change", aplicarFiltrosHorario);
+
+    btnSolicitarVacaciones.addEventListener("click", crearSolicitudVacaciones);
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadUsersFromStorage();
+      loadState();
+      ensureVacationCountersForEmployees();
+      ensureTasksArray();
+      currentUser = loadCurrentUser();
+      if (currentUser) {
+        mostrarApp();
+      } else {
+        mostrarLogin();
+      }
+    });
   </script>
 </body>
 </html>
