@@ -1612,7 +1612,9 @@
       getDocs,
       addDoc,
       updateDoc,
-      deleteDoc
+      deleteDoc,
+      query,
+      where
     } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -1697,20 +1699,46 @@
     }
 
     // Si no hay ningún usuario en Firestore, crea un admin por defecto
-    async function ensureDefaultAdmin() {
+    async function ensureDefaultUsers() {
       const colRef = collection(db, "users");
-      const snap = await getDocs(colRef);
-      if (!snap.empty) return;
 
-      await addDoc(colRef, {
-        username: "admin",
-        password: "admin123",
-        role: "admin",
-        nombre: "Administrador",
-        personaKey: "admin",
-        objetivoSemanal: 40,
-        activo: true
-      });
+      const defaultUsers = [
+        {
+          username: "admin",
+          password: "admin123",
+          role: "admin",
+          nombre: "Administrador",
+          personaKey: "admin",
+          objetivoSemanal: 40,
+          activo: true
+        },
+        {
+          username: "alicia",
+          password: "alicia123",
+          role: "empleado",
+          nombre: "Alicia",
+          personaKey: "alicia",
+          objetivoSemanal: 35,
+          activo: true
+        },
+        {
+          username: "maria",
+          password: "maria123",
+          role: "empleado",
+          nombre: "María",
+          personaKey: "maria",
+          objetivoSemanal: 40,
+          activo: true
+        }
+      ];
+
+      for (const u of defaultUsers) {
+        const q = query(colRef, where("username", "==", u.username));
+        const snap = await getDocs(q);
+        if (snap.empty) {
+          await addDoc(colRef, u);
+        }
+      }
     }
 
     // -------------------------
@@ -3310,7 +3338,7 @@ function getVacationStatusForDate(personaKey, fechaISO) {
     // Inicialización principal (async)
     document.addEventListener("DOMContentLoaded", () => {
       (async () => {
-        await ensureDefaultAdmin();
+        await ensureDefaultUsers();
         await loadUsersFromFirestore();
         await loadState();
         ensureVacationCountersForEmployees();
