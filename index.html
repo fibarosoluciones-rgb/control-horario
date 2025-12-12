@@ -1051,7 +1051,87 @@
   }
 }
 
-  </style>
+  
+.task-banner {
+  margin: 0.75rem 1.25rem 0.25rem 1.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.9rem;
+  background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(16,185,129,0.09));
+  border: 1px solid rgba(59,130,246,0.35);
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.task-banner.visible {
+  display: flex;
+}
+
+.task-banner-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.task-banner-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.task-banner-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.task-banner-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.task-chip {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(15,23,42,0.03);
+  border: 1px solid rgba(148,163,184,0.6);
+}
+
+.task-banner-cta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.task-banner-cta button {
+  white-space: nowrap;
+}
+
+.task-banner-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: #22c55e;
+  box-shadow: 0 0 0 0 rgba(34,197,94,0.5);
+  animation: taskPulse 1.6s infinite;
+}
+
+@keyframes taskPulse {
+  0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+  100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+}
+
+@media (max-width: 700px) {
+  .task-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+</style>
 </head>
 <body>
   <div class="app-root">
@@ -1128,6 +1208,24 @@
           </div>
         </div>
       </header>
+      <div id="taskBanner" class="task-banner">
+        <div class="task-banner-main">
+          <div class="task-banner-title">
+            🔔 Tareas pendientes en tu agenda
+          </div>
+          <div class="task-banner-sub" id="taskBannerMessage">
+            Hoy no tienes tareas pendientes. Disfruta el día 😄
+          </div>
+          <div class="task-banner-counts" id="taskBannerCounts"></div>
+        </div>
+        <div class="task-banner-cta">
+          <span class="task-banner-dot"></span>
+          <button id="taskBannerBtn" class="btn btn-ghost btn-small">
+            Ver tareas
+          </button>
+        </div>
+      </div>
+
 
       <nav class="tabs">
         <button id="tabHorario" class="tab-btn active">
@@ -1364,6 +1462,7 @@
                 <label class="field-label" for="userRol">Rol</label>
                 <select id="userRol" class="field-select">
                   <option value="empleado">Personal oficina</option>
+                  <option value="tecnico">Personal técnico</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
@@ -1419,7 +1518,20 @@
             </div>
             <div class="panel-tag">Agenda</div>
           </div>
-          <div class="panel-body">
+          
+          <div class="panel-body" id="panelAgendaPendiente">
+            <div class="panel-sub" style="margin-bottom:0.4rem;">
+              Tareas pendientes para ti
+            </div>
+            <div id="agendaPendienteHoy" class="agenda-list"></div>
+            <div style="height:0.5rem;"></div>
+            <div class="panel-sub" style="margin-bottom:0.2rem;">
+              Próximos 7 días
+            </div>
+            <div id="agendaPendienteProx" class="agenda-list"></div>
+            <hr style="border-color: rgba(148,163,184,0.35); margin:0.9rem 0 0.7rem 0;" />
+          </div>
+<div class="panel-body">
             <div class="agenda-layout">
               <div class="agenda-form">
                 <h4 class="agenda-form-title">Nueva tarea</h4>
@@ -1670,7 +1782,8 @@
 
     const ROLE_LABELS = {
       admin: "Admin",
-      empleado: "Personal oficina"
+      empleado: "Personal oficina",
+      tecnico: "Personal técnico"
     };
 
     // Clave en localStorage SOLO para recordar quién está logueado
@@ -2053,7 +2166,7 @@ function getVacationStatusForDate(personaKey, fechaISO) {
         filtered = filtered.filter((d) => d.fecha <= end);
       }
 
-      if (currentUser && currentUser.role === "empleado") {
+      if (currentUser && (currentUser.role === "empleado" || currentUser.role === "tecnico")) {
         const personaKey = currentUser.personaKey;
         if (personaKey === "alicia") {
           filtered = filtered.filter(d => d.alicia);
@@ -2088,7 +2201,7 @@ function getVacationStatusForDate(personaKey, fechaISO) {
         if (!vacM && d.maria && typeof d.maria.horas === "number") horasMaria += d.maria.horas;
       });
 
-      if (currentUser && currentUser.role === "empleado") {
+      if (currentUser && (currentUser.role === "empleado" || currentUser.role === "tecnico")) {
         if (currentUser.personaKey === "alicia") {
           totalHoursLabel.textContent = `Alicia: ${horasAlicia} h en el rango`;
         } else if (currentUser.personaKey === "maria") {
@@ -2387,6 +2500,8 @@ function getVacationStatusForDate(personaKey, fechaISO) {
     // =========================
     const agendaSemana = document.getElementById("agendaSemana");
     const agendaLista = document.getElementById("agendaLista");
+    const agendaPendienteHoy = document.getElementById("agendaPendienteHoy");
+    const agendaPendienteProx = document.getElementById("agendaPendienteProx");
     const taskTitleInput = document.getElementById("taskTitle");
     const taskDateInput = document.getElementById("taskDate");
     const taskTimeInput = document.getElementById("taskTime");
@@ -2394,6 +2509,11 @@ function getVacationStatusForDate(personaKey, fechaISO) {
     const taskSharedWithSelect = document.getElementById("taskSharedWith");
     const taskError = document.getElementById("taskError");
     const btnCrearTarea = document.getElementById("btnCrearTarea");
+
+    const taskBanner = document.getElementById("taskBanner");
+    const taskBannerMessage = document.getElementById("taskBannerMessage");
+    const taskBannerCounts = document.getElementById("taskBannerCounts");
+    const taskBannerBtn = document.getElementById("taskBannerBtn");
 
     function populateSharedWithSelect() {
       if (!taskSharedWithSelect) return;
@@ -2460,7 +2580,10 @@ function getVacationStatusForDate(personaKey, fechaISO) {
         descripcion,
         createdBy: currentUser.username,
         sharedWith,
-        createdEn: new Date().toISOString()
+        createdEn: new Date().toISOString(),
+        done: false,
+        doneBy: null,
+        doneAt: null
       };
       nueva.weekKey = getWeekKeyFromISO(fecha);
 
@@ -2477,7 +2600,163 @@ function getVacationStatusForDate(personaKey, fechaISO) {
       btnCrearTarea.addEventListener("click", crearTareaAgenda);
     }
 
-    function renderAgendaWeek(tasks) {
+    
+    function renderTaskListForContainer(tasks, container) {
+      if (!container) return;
+      container.innerHTML = "";
+
+      if (!tasks.length) {
+        const empty = document.createElement("div");
+        empty.className = "agenda-list-empty";
+        empty.textContent = "No hay tareas pendientes.";
+        container.appendChild(empty);
+        return;
+      }
+
+      const sorted = tasks.slice().sort((a,b) => {
+        const aKey = (a.fecha || "") + " " + (a.hora || "00:00");
+        const bKey = (b.fecha || "") + " " + (b.hora || "00:00");
+        return aKey.localeCompare(bKey);
+      });
+
+      sorted.forEach(t => {
+        const row = document.createElement("div");
+        row.className = "agenda-list-item";
+
+        const fechaBonita = t.fecha ? formatearFechaISOaBonito(t.fecha) : "-";
+        const horaText = t.hora ? t.hora : "--:--";
+
+        let extraInfo = "";
+        if (t.descripcion) {
+          extraInfo += `<div class="agenda-list-desc">${t.descripcion}</div>`;
+        }
+
+        if (t.done) {
+          extraInfo += `<div class="agenda-list-meta">✅ Marcada como hecha por ${t.doneBy || "alguien"} el ${t.doneAt ? formatearFechaISOaBonito(t.doneAt.slice(0,10)) : ""}</div>`;
+        }
+
+        const canToggle = currentUser &&
+          (currentUser.role === "admin" ||
+           t.createdBy === currentUser.username ||
+           (Array.isArray(t.sharedWith) && t.sharedWith.includes(currentUser.username)));
+
+        let actionsHTML = "";
+        if (canToggle) {
+          if (!t.done) {
+            actionsHTML = `<button class="btn btn-ghost btn-small" data-task-id="${t.id}" data-action="done">Marcar como hecha</button>`;
+          } else {
+            actionsHTML = `<button class="btn btn-ghost btn-small" data-task-id="${t.id}" data-action="undone">Marcar como pendiente</button>`;
+          }
+        }
+
+        row.innerHTML = `
+          <div class="agenda-list-main">
+            <div class="agenda-list-title">${t.titulo}</div>
+            <div class="agenda-list-meta">
+              ${fechaBonita} · ${horaText}
+            </div>
+          </div>
+          <div class="agenda-list-extra">
+            ${extraInfo}
+          </div>
+          <div class="agenda-list-actions">
+            ${actionsHTML}
+          </div>
+        `;
+
+        const btn = row.querySelector("button[data-task-id]");
+        if (btn) {
+          btn.addEventListener("click", () => {
+            const action = btn.getAttribute("data-action");
+            const markDone = action === "done";
+            toggleTaskDone(t.id, markDone);
+          });
+        }
+
+        container.appendChild(row);
+      });
+    }
+
+    function toggleTaskDone(taskId, done) {
+      ensureTasksArray();
+      const idx = appState.tasks.findIndex(t => t.id === taskId);
+      if (idx === -1) return;
+      const t = appState.tasks[idx];
+      t.done = done;
+      if (done) {
+        t.doneBy = currentUser ? (currentUser.nombre || currentUser.username) : null;
+        t.doneAt = new Date().toISOString();
+      } else {
+        t.doneBy = null;
+        t.doneAt = null;
+      }
+      saveState();
+      renderAgenda();
+      updateTaskBanner();
+    }
+
+    function updateTaskBanner() {
+      if (!taskBanner || !currentUser) return;
+      ensureTasksArray();
+      const visibles = getTasksVisibleToCurrentUser().filter(t => !t.done);
+
+      if (!visibles.length) {
+        taskBanner.classList.remove("visible");
+        taskBannerCounts.innerHTML = "";
+        taskBannerMessage.textContent = "Hoy no tienes tareas pendientes. Disfruta el día 😄";
+        return;
+      }
+
+      const hoy = hoyISO();
+      const hoyDate = new Date(hoy + "T00:00:00");
+      const sieteDiasDespues = new Date(hoyDate);
+      sieteDiasDespues.setDate(hoyDate.getDate() + 7);
+
+      const tareasHoy = [];
+      const tareasProx = [];
+
+      visibles.forEach(t => {
+        if (!t.fecha) return;
+        const d = new Date(t.fecha + "T00:00:00");
+        if (t.fecha === hoy) {
+          tareasHoy.push(t);
+        } else if (d >= hoyDate && d <= sieteDiasDespues) {
+          tareasProx.push(t);
+        }
+      });
+
+      taskBanner.classList.add("visible");
+
+      if (tareasHoy.length) {
+        taskBannerMessage.textContent = `Tienes ${tareasHoy.length} tarea(s) para hoy.`;
+      } else if (tareasProx.length) {
+        taskBannerMessage.textContent = `No tienes tareas para hoy, pero sí ${tareasProx.length} en los próximos días.`;
+      } else {
+        taskBannerMessage.textContent = "Tienes tareas pendientes más adelante en el calendario.";
+      }
+
+      const chips = [];
+      if (tareasHoy.length) {
+        chips.push(`<span class="task-chip">Hoy: ${tareasHoy.length}</span>`);
+      }
+      if (tareasProx.length) {
+        chips.push(`<span class="task-chip">Próximos 7 días: ${tareasProx.length}</span>`);
+      }
+      taskBannerCounts.innerHTML = chips.join("");
+
+      if (taskBannerBtn) {
+        taskBannerBtn.onclick = () => {
+          setActiveTab("agenda");
+        };
+      }
+
+      // Rellenar panel pendiente en agenda
+      if (agendaPendienteHoy || agendaPendienteProx) {
+        renderTaskListForContainer(tareasHoy, agendaPendienteHoy);
+        renderTaskListForContainer(tareasProx, agendaPendienteProx);
+      }
+    }
+function renderAgendaWeek(tasks) {
       if (!agendaSemana) return;
       agendaSemana.innerHTML = "";
 
@@ -2617,6 +2896,7 @@ function getVacationStatusForDate(personaKey, fechaISO) {
 
       renderAgendaWeek(weekTasks);
       renderAgendaLista(visibles);
+      updateTaskBanner();
     }
 // Control horario (timeEntries)
     // =========================
