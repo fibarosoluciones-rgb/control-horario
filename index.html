@@ -1983,7 +1983,28 @@ function getVacationStatusForDate(personaKey, fechaISO) {
       return { total, used, remaining };
     }
 
-    const HORAS_EXCEPCIONAL = 8;
+    
+    function hoyISO() {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function formatearFechaISOaBonito(iso) {
+      if (!iso) return "";
+      const [year, month, day] = iso.split("-");
+      const d = new Date(Number(year), Number(month) - 1, Number(day));
+      if (isNaN(d.getTime())) return iso;
+      return d.toLocaleDateString("es-ES", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+      });
+    }
+
+const HORAS_EXCEPCIONAL = 8;
     const TEXTO_EXCEPCIONAL = "08:30 – 13:30 · 15:00 – 18:00";
 
     // =========================
