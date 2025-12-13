@@ -1106,12 +1106,12 @@
         </div>
         <form id="loginForm" class="login-form">
           <div class="field-group">
-            <label class="field-label" for="username">Usuario</label>
-            <input id="username" class="field-input" type="text" autocomplete="username" placeholder="Escribe tu usuario" />
+            <label class="field-label" for="username">Email</label>
+            <input id="username" class="field-input" type="text" autocomplete="username" placeholder="admi@fibaroteleco.com" value="admi@fibaroteleco.com" />
           </div>
           <div class="field-group">
             <label class="field-label" for="password">Contraseña</label>
-            <input id="password" type="password" class="field-input" placeholder="••••••••" autocomplete="current-password" />
+            <input id="password" type="password" class="field-input" placeholder="••••••••" autocomplete="current-password" value="123456" />
           </div>
           <div id="loginError" class="error-msg" style="display:none;"></div>
           <button type="submit" class="btn btn-primary" style="width:100%;">
@@ -1322,8 +1322,21 @@
             <div id="listaPendientes" class="request-list"></div>
             <h4 style="font-size:0.85rem;margin:0.4rem 0 0.25rem;">Histórico</h4>
             <div id="listaHistorico" class="request-list"></div>
+
+            <div style="margin-top:0.9rem;padding-top:0.9rem;border-top:1px solid rgba(148,163,184,0.25);">
+              <h4 style="font-size:0.85rem;margin-bottom:0.35rem;">Exportar (CSV para Excel)</h4>
+              <div style="display:flex;flex-wrap:wrap;gap:0.45rem;">
+                <button id="btnExportVacaciones" class="btn btn-ghost btn-small">⬇️ Vacaciones</button>
+                <button id="btnExportFichajes" class="btn btn-ghost btn-small">⬇️ Fichajes</button>
+                <button id="btnExportAgenda" class="btn btn-ghost btn-small">⬇️ Agenda</button>
+              </div>
+              <p class="panel-sub" style="margin-top:0.4rem;">
+                Se descargará un archivo <strong>.csv</strong> (lo abre Excel). Incluye todo lo guardado.
+              </p>
+            </div>
+
           </div>
-        </section>
+        </section
       </section>
 
 
@@ -1519,6 +1532,42 @@
     </section>
   </div>
 
+  
+  <!-- ===== Firebase (Auth + Firestore) =====
+       1) En Firebase Console → Project settings → Your apps (Web) → "Config"
+          Copia el firebaseConfig (los valores apiKey, authDomain, etc) y pégalo abajo.
+       2) En Authentication → Sign-in method → activa Email/Password.
+       3) Crea usuarios en Authentication → Users (admin, alicia, maria, etc).
+       4) En Firestore Database → Create database.
+  -->
+  <script type="module">
+    // IMPORTS: usa la versión que te sugiera Firebase (puedes copiarla del snippet de "Add Firebase").
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    // ⬇️ PEGA AQUÍ TU firebaseConfig (Firebase Console → Project settings → Your apps → Config)
+    const firebaseConfig = {
+      "apiKey": "AIzaSyB_DvfW395pemIz9kLZBtCqhQpouHDenYo",
+      "authDomain": "horarios-84ca8.firebaseapp.com",
+      "projectId": "horarios-84ca8",
+      "storageBucket": "horarios-84ca8.firebasestorage.app",
+      "messagingSenderId": "899817963772",
+      "appId": "1:899817963772:web:a7a33b7376ab1f9d415779"
+};
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // Exponemos funciones a la parte “normal” del script (sin imports).
+    window.__fb = {
+      app, auth, db,
+      onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut,
+      doc, getDoc, setDoc, onSnapshot, serverTimestamp
+    };
+  </script>
+
   <script>
     // =========================
     // Datos del cuadrante (desde tu Excel)
@@ -1554,13 +1603,17 @@
     // Usuarios y roles
     // =========================
     const USERS = [
-      { username: "admin",  password: "admin123",  role: "admin",    nombre: "Administrador" },
-      { username: "keño",   password: "keno123",   role: "admin",    nombre: "Keño" },
-      { username: "mejias", password: "mejias123", role: "admin",    nombre: "Mejías" },
-      { username: "alicia", password: "alicia123", role: "empleado", nombre: "Alicia", personaKey: "alicia", objetivoSemanal: 35 },
-      { username: "maria",  password: "maria123",  role: "empleado", nombre: "María",  personaKey: "maria",  objetivoSemanal: 40 },
-      { username: "tecnico", password: "tecnico123", role: "tecnico", nombre: "Técnico", objetivoSemanal: 40 }
+      { username: "admin",  password: "123456",  role: "admin",    nombre: "Administrador", email: "admi@fibaroteleco.com" },
+      { username: "maria",  password: "123456",  role: "empleado", nombre: "María",         personaKey: "maria",  objetivoSemanal: 40, email: "m.vidal@fibaroteleco.com" },
+      { username: "alicia", password: "123456",  role: "empleado", nombre: "Alicia",        personaKey: "alicia", objetivoSemanal: 35, email: "alicia@fibaroteleco.com" }
     ];
+
+    // UIDs (Firebase Auth) de cada cuenta. Sirve para validar que el usuario logueado es el correcto.
+    const UID_BY_EMAIL = {
+      "admi@fibaroteleco.com": "VhQBij9wvfPVuqmRIYTdCYZ3Yal1",
+      "m.vidal@fibaroteleco.com": "kI0jmetDLDcyZZsTspRXbnRBdU22",
+      "alicia@fibaroteleco.com": "hnsJAfH0whctrkGJ31j5moS0xQz2",
+    };
 
     const ROLE_LABELS = {
       admin: "Admin",
@@ -1637,6 +1690,77 @@
       } catch (e) {
         console.error("Error guardando estado", e);
       }
+
+      // Guardado en la nube (Firestore) si está activo.
+      if (window.__cloudReady && window.__cloudDocRef && window.__fb && !window.__applyingRemote) {
+        window.__fb.setDoc(
+          window.__cloudDocRef,
+          { ...appState, updatedAt: window.__fb.serverTimestamp() },
+          { merge: true }
+        ).catch(err => console.warn("Firestore saveState error:", err));
+      }
+    }
+
+    // ===== Sincronización Firestore (estado compartido) =====
+    window.__cloudReady = false;
+    window.__cloudDocRef = null;
+    window.__cloudUnsub = null;
+    window.__applyingRemote = false;
+
+    async function initCloudSync() {
+      if (!window.__fb || !window.__fb.db) return;
+
+      // Cambia este ID si algún día quieres separar “empresas” o “sucursales”.
+      const ORG_ID = "fibaroteleco";
+
+      window.__cloudDocRef = window.__fb.doc(window.__fb.db, "config", "globalState");
+
+      // 1) Si no existe en la nube, lo creamos con lo que haya local.
+      try {
+        const snap = await window.__fb.getDoc(window.__cloudDocRef);
+        if (!snap.exists()) {
+          await window.__fb.setDoc(window.__cloudDocRef, { ...appState, createdAt: window.__fb.serverTimestamp(), updatedAt: window.__fb.serverTimestamp() });
+        }
+      } catch (e) {
+        console.warn("No se pudo preparar el documento en Firestore:", e);
+      }
+
+      // 2) Escucha en tiempo real.
+      if (window.__cloudUnsub) {
+        try { window.__cloudUnsub(); } catch(e) {}
+      }
+      window.__cloudUnsub = window.__fb.onSnapshot(window.__cloudDocRef, (snap) => {
+        const data = snap.data();
+        if (!data) return;
+// Evita bucles (si llega una actualización de la nube, no re-guardamos inmediatamente).
+        window.__applyingRemote = true;
+        try {
+          const remoteState = Object.assign({}, data);
+          delete remoteState.createdAt;
+          delete remoteState.updatedAt;
+          appState = remoteState;
+
+          // Protecciones
+          ensureVacationCountersForEmployees();
+          ensureTasksArray();
+
+          if (currentUser) {
+            // refrescar pantallas
+            renderMisSolicitudes();
+            renderAdminSolicitudes();
+            updateEmpleadoControlUI();
+            updateAdminControlUI();
+            updateVacationCountersUI();
+            renderAgenda();
+            aplicarFiltrosHorario();
+          }
+        } finally {
+          window.__applyingRemote = false;
+        }
+      });
+
+      window.__cloudReady = true;
+    }
     }
 
     function ensureVacationCountersForEmployees() {
@@ -3123,32 +3247,85 @@ function actualizarUIUsuario() {
       passwordInput.value = "";
     }
 
-    loginForm.addEventListener("submit", (e) => {
+    loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const username = usernameSelect.value;
+
+      const raw = (usernameSelect.value || "").trim();
       const password = passwordInput.value;
 
-      const user = USERS.find(u => u.username === username && u.password === password);
-      if (!user) {
-        loginError.textContent = "Usuario o contraseña incorrectos.";
+      loginError.style.display = "none";
+      loginError.textContent = "";
+
+      // Permite escribir email o el "usuario corto" (alicia/maria/admin) si lo prefieres.
+      let user = null;
+      let email = null;
+
+      if (raw.includes("@")) {
+        email = raw.toLowerCase();
+        user = USERS.find(u => (u.email || "").toLowerCase() === email) || null;
+      } else {
+        user = USERS.find(u => u.username === raw) || null;
+        email = user && user.email ? String(user.email).toLowerCase() : null;
+      }
+
+      if (!email) {
+        loginError.textContent = "Email no reconocido. (Si has escrito un usuario, falta el email en la lista USERS del código).";
         loginError.style.display = "block";
         return;
       }
-      currentUser = user;
-      saveCurrentUser();
-      mostrarApp();
+
+      if (!window.__fb || !window.__fb.auth) {
+        loginError.textContent = "Firebase no está configurado (firebaseConfig).";
+        loginError.style.display = "block";
+        return;
+      }
+
+      try {
+        await window.__fb.signInWithEmailAndPassword(window.__fb.auth, email, password);
+
+        // currentUser se define en el listener onAuthStateChanged.
+        passwordInput.value = "";
+      } catch (err) {
+        console.warn("Login error:", err);
+
+        // Usuario o contraseña incorrectos.
+        loginError.textContent = "No se pudo iniciar sesión (email/contraseña).";
+        loginError.style.display = "block";
+      }
     });
 
-    btnLogout.addEventListener("click", () => {
-      currentUser = null;
-      saveCurrentUser();
-      mostrarLogin();
+    btnLogout.addEventListener("click", async () => {
+      try {
+        if (window.__cloudUnsub) {
+          try { window.__cloudUnsub(); } catch(e) {}
+          window.__cloudUnsub = null;
+        }
+        if (window.__fb && window.__fb.auth) {
+          await window.__fb.signOut(window.__fb.auth);
+        }
+      } catch (e) {
+        console.warn("Logout error:", e);
+      } finally {
+        currentUser = null;
+        saveCurrentUser(); // mantiene compatibilidad (aunque ya no es lo principal)
+        mostrarLogin();
+      }
     });
 
     tabHorario.addEventListener("click", () => setActiveTab("horario"));
     tabVacaciones.addEventListener("click", () => setActiveTab("vacaciones"));
     tabAgenda.addEventListener("click", () => setActiveTab("agenda"));
     tabControl.addEventListener("click", () => setActiveTab("control"));
+
+    // Botones export (solo visibles en Admin)
+    const btnExportVacaciones = document.getElementById("btnExportVacaciones");
+    const btnExportFichajes = document.getElementById("btnExportFichajes");
+    const btnExportAgenda = document.getElementById("btnExportAgenda");
+
+    if (btnExportVacaciones) btnExportVacaciones.addEventListener("click", exportVacacionesCSV);
+    if (btnExportFichajes) btnExportFichajes.addEventListener("click", exportFichajesCSV);
+    if (btnExportAgenda) btnExportAgenda.addEventListener("click", exportAgendaCSV);
+
 
     btnHoy.addEventListener("click", () => {
       const hoy = hoyISO();
@@ -3170,18 +3347,149 @@ function actualizarUIUsuario() {
 
     btnSolicitarVacaciones.addEventListener("click", crearSolicitudVacaciones);
 
-    document.addEventListener("DOMContentLoaded", () => {
-      loadUsersFromStorage();
+    
+    // ===== Exportar CSV (Excel) =====
+    function downloadCSV(filename, rows) {
+      const escapeCell = (v) => {
+        const s = (v === null || v === undefined) ? "" : String(v);
+        const needsQuotes = /[",\n;]/.test(s);
+        const escaped = s.replace(/"/g, '""');
+        return needsQuotes ? `"${escaped}"` : escaped;
+      };
+      const csv = rows.map(r => r.map(escapeCell).join(";")).join("\n");
+      const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportVacacionesCSV() {
+      const rows = [["id","empleado","desde","hasta","estado","comentario","creadoEn","gestionPor","gestionFecha"]];
+      (appState.vacationRequests || []).forEach(r => {
+        rows.push([
+          r.id || "",
+          r.empleadoUsername || "",
+          r.desde || "",
+          r.hasta || "",
+          r.estado || "",
+          r.comentario || "",
+          r.creadoEn || "",
+          (r.gestion && r.gestion.por) ? r.gestion.por : "",
+          (r.gestion && r.gestion.fecha) ? r.gestion.fecha : ""
+        ]);
+      });
+      downloadCSV("vacaciones.csv", rows);
+    }
+
+    function exportFichajesCSV() {
+      const rows = [["id","usuario","personaKey","fecha","inicio","fin","horas","pausas","estado","ubicacionInicio"]];
+      (appState.timeEntries || []).forEach(e => {
+        const horas = computeEntryHours(e);
+        const pausas = Array.isArray(e.pausas) ? e.pausas.map(p => `${p.inicio || ""}→${p.fin || ""}`).join(" | ") : "";
+        const loc = e.ubicacionInicio ? `${e.ubicacionInicio.lat},${e.ubicacionInicio.lng} (±${e.ubicacionInicio.accuracy || ""}m)` : "";
+        rows.push([
+          e.id || "",
+          e.username || "",
+          e.personaKey || "",
+          e.fecha || "",
+          e.inicio || "",
+          e.fin || "",
+          (Math.round(horas * 100) / 100).toFixed(2),
+          pausas,
+          e.estado || "",
+          loc
+        ]);
+      });
+      downloadCSV("fichajes.csv", rows);
+    }
+
+    function exportAgendaCSV() {
+      const rows = [["id","titulo","fecha","hora","descripcion","createdBy","sharedWith","done","createdEn"]];
+      (appState.tasks || []).forEach(t => {
+        rows.push([
+          t.id || "",
+          t.titulo || "",
+          t.fecha || "",
+          t.hora || "",
+          t.descripcion || "",
+          t.createdBy || "",
+          Array.isArray(t.sharedWith) ? t.sharedWith.join(",") : "",
+          t.done ? "1" : "0",
+          t.createdEn || ""
+        ]);
+      });
+      downloadCSV("agenda.csv", rows);
+    }
+
+    // Aviso si cierras la pestaña con jornada abierta
+    window.addEventListener("beforeunload", (e) => {
+      if (!currentUser) return;
+      const active = getActiveEntryForUser(currentUser.username);
+      if (active) {
+        e.preventDefault();
+        e.returnValue = "Tienes una jornada abierta. ¿Seguro que quieres salir?";
+      }
+    });
+
+document.addEventListener("DOMContentLoaded", () => {
+      // loadUsersFromStorage(); // desactivado: lista fija de usuarios por código
       loadState();
       ensureVacationCountersForEmployees();
       ensureTasksArray();
-      currentUser = loadCurrentUser();
-      if (currentUser) {
-        mostrarApp();
+
+      // Si Firebase está configurado, el login real lo controla Firebase Auth.
+      if (window.__fb && window.__fb.auth) {
+        window.__fb.onAuthStateChanged(window.__fb.auth, async (fbUser) => {
+          if (fbUser) {
+            // Relacionamos el email con tu lista USERS (para rol/nombre/personaKey).
+            const email = (fbUser.email || "").toLowerCase();
+            const match = USERS.find(u => (u.email || "").toLowerCase() === email) || null;
+
+            // Validación por UID (para evitar que un email distinto o recreado se cuele)
+            const expectedUid = UID_BY_EMAIL[email];
+            if (expectedUid && fbUser.uid !== expectedUid) {
+              try { await window.__fb.signOut(window.__fb.auth); } catch (e) {}
+              mostrarLogin();
+              const le = document.getElementById("loginError");
+              if (le) {
+                le.textContent = "Acceso denegado: el usuario no coincide con el UID configurado.";
+                le.style.display = "block";
+              }
+              return;
+            }
+
+
+            // Si no está en USERS, entrará como "empleado" genérico.
+            currentUser = match ? match : {
+              username: email.split("@")[0] || "empleado",
+              email,
+              role: "empleado",
+              nombre: email,
+              personaKey: email.split("@")[0] || "empleado",
+              objetivoSemanal: 40
+            };
+
+            // Sync nube
+            await initCloudSync();
+
+            mostrarApp();
+          } else {
+            currentUser = null;
+            mostrarLogin();
+          }
+        });
       } else {
-        mostrarLogin();
+        // Fallback antiguo (sin Firebase)
+        currentUser = loadCurrentUser();
+        if (currentUser) mostrarApp();
+        else mostrarLogin();
       }
-    });
+});
   </script>
 </body>
 </html>
