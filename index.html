@@ -1559,6 +1559,8 @@
 
     let unsubscribeGlobalState = null;
     let isApplyingRemoteState = false;
+    let hasLoadedRemote = false;
+    let cloudSaveTimer = null;
 
     function getProfileByEmail(email) {
       const e = (email || "").toLowerCase().trim();
@@ -1588,23 +1590,44 @@
     }
 
     function startFirestoreSync() {
+      hasLoadedRemote = false;
+
       if (unsubscribeGlobalState) {
         unsubscribeGlobalState();
         unsubscribeGlobalState = null;
       }
-      unsubscribeGlobalState = GLOBAL_STATE_REF.onSnapshot((doc) => {
-        if (!doc.exists) {
-          // Si no existe, lo creamos con el estado actual
-          GLOBAL_STATE_REF.set(appState).catch((e) => console.error("Error creando globalState", e));
-          return;
+
+      unsubscribeGlobalState = GLOBAL_STATE_REF.onSnapshot(async (doc) => {
+        try {
+          if (!doc.exists) {
+            // Primera vez: subimos el estado actual al cloud
+            const payload = Object.assign({}, appState, {
+              _meta: {
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                createdBy: auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : "unknown"
+              }
+            });
+            await GLOBAL_STATE_REF.set(payload, { merge: true });
+            hasLoadedRemote = true;
+            return;
+          }
+
+          const remote = normalizeAppState(doc.data());
+
+          // Fuente de la verdad = cloud
+          isApplyingRemoteState = true;
+          appState = remote;
+
+          ensureVacationCountersForEmployees();
+          ensureTasksArray();
+          refreshViewsFromState();
+
+          isApplyingRemoteState = false;
+          hasLoadedRemote = true;
+        } catch (e) {
+          console.error("Error aplicando globalState", e);
+          isApplyingRemoteState = false;
         }
-        const remote = normalizeAppState(doc.data());
-        isApplyingRemoteState = true;
-        appState = remote;
-        ensureVacationCountersForEmployees();
-        ensureTasksArray();
-        refreshViewsFromState();
-        isApplyingRemoteState = false;
       }, (err) => {
         console.error("Error escuchando globalState", err);
       });
@@ -1733,20 +1756,44 @@
     }
 
     function saveState() {
+      // Guardado local (sirve como caché/offline por dispositivo)
       try {
         localStorage.setItem(STORAGE_KEY_STATE, JSON.stringify(appState));
       } catch (e) {
         console.error("Error guardando estado", e);
       }
 
-      // Sincroniza con Firestore si hay sesión y no estamos aplicando un snapshot remoto
+      // Guardado online (Firestore) con debounce para no spamear escrituras
+      scheduleCloudSave();
+    }
+
+    // ---- Sincronización Firestore (online de verdad) ----
+
+    function scheduleCloudSave() {
       try {
-        if (auth && auth.currentUser && !isApplyingRemoteState) {
-          GLOBAL_STATE_REF.set(appState).catch((e) => console.error("Error guardando en Firestore", e));
+        if (!auth || !auth.currentUser) return;
+        if (!hasLoadedRemote) return;              // evita sobrescribir remoto al arrancar
+        if (isApplyingRemoteState) return;          // evita bucles al aplicar snapshots remotos
+      } catch (_) { return; }
+
+      if (cloudSaveTimer) clearTimeout(cloudSaveTimer);
+      cloudSaveTimer = setTimeout(async () => {
+        try {
+          if (!auth.currentUser) return;
+          if (isApplyingRemoteState) return;
+
+          const payload = Object.assign({}, appState, {
+            _meta: {
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+              updatedBy: auth.currentUser.email || auth.currentUser.uid
+            }
+          });
+
+          await GLOBAL_STATE_REF.set(payload, { merge: true });
+        } catch (e) {
+          console.error("Error guardando en Firestore", e);
         }
-      } catch (e) {
-        console.error("Error sincronizando Firestore", e);
-      }
+      }, 600);
     }
 
     function ensureVacationCountersForEmployees() {
