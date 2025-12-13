@@ -1577,15 +1577,25 @@
     }
 
     function refreshViewsFromState() {
-      // Re-render principal sin tocar demasiado la UX
+      // Re-render principal (todas las secciones) cuando llega un cambio desde Firestore
       ensureVacationCountersForEmployees();
       ensureTasksArray();
+
       actualizarUIUsuario();
+
+      // Horario (depende de vacaciones aprobadas para cálculos/etiquetas)
+      try { aplicarFiltrosHorario(); } catch (e) { /* puede no estar inicializado aún */ }
+
+      // Vacaciones
       renderMisSolicitudes();
       renderAdminSolicitudes();
+      updateVacationCountersUI();
+
+      // Control horario (fichajes)
       updateEmpleadoControlUI();
       updateAdminControlUI();
-      updateVacationCountersUI();
+
+      // Agenda compartida
       renderAgenda();
     }
 
