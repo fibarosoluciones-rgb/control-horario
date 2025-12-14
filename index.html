@@ -55,7 +55,7 @@
   <div class="right">
     <span id="netPill" class="pill">⛅️ offline</span>
     <span id="userPill" class="pill">No conectado</span>
-    <button id="logoutBtn" class="secondary hidden">Salir</button>
+    <button id="logoutBtn" class="secondary hidden">Cerrar sesión</button>
   </div>
 </header>
 
@@ -548,7 +548,23 @@
   $("modalOkBtn").addEventListener("click", ()=>closeModal(true));
   $("modalBackdrop").addEventListener("click", (e)=>{ if (e.target === $("modalBackdrop")) closeModal(false); });
 
-  // ========= AUTH =========
+  
+  // ========= FIREBASE ERROR GUARD =========
+  function markPermissionDenied(err){
+    try{
+      const msg = (err && (err.message || err.toString())) || "";
+      if ((err && err.code === "permission-denied") || msg.includes("Missing or insufficient permissions")){
+        $("userPill").textContent = "Sin permisos (revisa Firestore Rules)";
+        show($("logoutBtn"));
+      }
+      console.error(err);
+    } catch(e){
+      console.error(err);
+    }
+  }
+
+  window.addEventListener("unhandledrejection", (e)=>{ markPermissionDenied(e.reason); });
+// ========= AUTH =========
   function normalizeEmail(input){
     const raw = (input||"").trim().toLowerCase();
     if (ALIAS_EMAIL[raw]) return ALIAS_EMAIL[raw];
@@ -604,7 +620,7 @@
     }
   }
 
-  async function ensureSeeds(){
+  async function ensureSeeds(canWrite){
     // settings/app
     const settingsRef = doc(DB, "settings", "app");
     const sSnap = await getDoc(settingsRef);
@@ -613,7 +629,7 @@
     // Seed turnos si no hay
     const shiftsRef = collection(DB, "shifts");
     const shiftsSnap = await getDocs(query(shiftsRef, limit(1)));
-    if (shiftsSnap.empty){
+    if (shiftsSnap.empty && canWrite){
       const batch = writeBatch(DB);
       const seed = [
         {label:"Mañana 1", start:"08:00", end:"14:00", breakMinutes:0, active:true},
@@ -635,7 +651,7 @@
     // Seed patrón si no hay
     const patternsRef = collection(DB, "patterns");
     const patSnap = await getDocs(query(patternsRef, limit(1)));
-    if (patSnap.empty){
+    if (patSnap.empty && canWrite){
       // Construye un patrón 2 semanas equivalente al actual (A/B) usando etiquetas (se resolverá a shiftId por label)
       // Nota: asignamos por email inicial; luego el admin puede editar/añadir personas.
       const pattern = {
@@ -713,12 +729,17 @@
     const userRef = doc(DB, "users", firebaseUser.uid);
     const snap = await getDoc(userRef);
 
-    // Buscar alta pendiente por email
+    // Buscar alta pendiente por email (si Rules lo permiten)
     let pending = null;
-    const pendingQ = query(collection(DB, "pendingUsers"), where("email","==", firebaseUser.email), limit(1));
-    const pendingSnap = await getDocs(pendingQ);
-    if (!pendingSnap.empty){
-      pending = { id: pendingSnap.docs[0].id, ...pendingSnap.docs[0].data() };
+    try{
+      const pendingQ = query(collection(DB, "pendingUsers"), where("email","==", firebaseUser.email), limit(1));
+      const pendingSnap = await getDocs(pendingQ);
+      if (!pendingSnap.empty){
+        pending = { id: pendingSnap.docs[0].id, ...pendingSnap.docs[0].data() };
+      }
+    } catch(e){
+      // Si un empleado no tiene permiso todavía, seguimos sin bloquear el login.
+      markPermissionDenied(e);
     }
 
     const baseProfile = {
@@ -824,17 +845,20 @@
       renderSchedule();
     }));
 
-    // pendingUsers
-    subs.push(onSnapshot(query(collection(DB,"pendingUsers"), orderBy("createdAt","desc")), (snap)=>{
-      state.pendingUsers = snap.docs.map(d=>({id:d.id,...d.data()}));
-      renderPendingAdmin();
-    }));
+    // pendingUsers + auditoría (solo admin)
+    if (state.me?.role === "admin"){
+      subs.push(onSnapshot(
+        query(collection(DB,"pendingUsers"), orderBy("createdAt","desc")),
+        (snap)=>{ state.pendingUsers = snap.docs.map(d=>({id:d.id,...d.data()})); renderPendingAdmin(); },
+        (err)=>{ markPermissionDenied(err); }
+      ));
 
-    // auditLogs (últimos 50)
-    subs.push(onSnapshot(query(collection(DB,"auditLogs"), orderBy("at","desc"), limit(50)), (snap)=>{
-      state.auditLogs = snap.docs.map(d=>({id:d.id,...d.data()}));
-      renderAudit();
-    }));
+      subs.push(onSnapshot(
+        query(collection(DB,"auditLogs"), orderBy("at","desc"), limit(50)),
+        (snap)=>{ state.auditLogs = snap.docs.map(d=>({id:d.id,...d.data()})); renderAudit(); },
+        (err)=>{ markPermissionDenied(err); }
+      ));
+    }
   }
 
   // ========= PERMISSIONS / LOCATION =========
@@ -1911,13 +1935,16 @@
 
     show($("appView"));
     hide($("loginView"));
+    show($("logoutBtn"));
 
-    // Seeds + migration (solo una vez)
-    await ensureSeeds();
-    await maybeMigrateFromGlobalState();
-
-    // profile
+    // Perfil (crea/actualiza users/{uid})
     await upsertUserProfile(user);
+
+    // Seeds + migración (solo admin). Empleados no deben intentar escribir/leer admin-only.
+    try { await ensureSeeds(state.me?.role === "admin"); } catch (e){ markPermissionDenied(e); }
+    if (state.me?.role === "admin"){
+      try { await maybeMigrateFromGlobalState(); } catch (e){ markPermissionDenied(e); }
+    }
 
     // Realtime
     startRealtime();
