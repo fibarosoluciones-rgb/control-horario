@@ -1106,8 +1106,8 @@
         </div>
         <form id="loginForm" class="login-form">
           <div class="field-group">
-            <label class="field-label" for="username">Usuario</label>
-            <input id="username" class="field-input" type="text" autocomplete="username" placeholder="Escribe tu usuario" />
+            <label class="field-label" for="username">Email</label>
+            <input id="username" class="field-input" type="text" autocomplete="email" placeholder="Escribe tu email (o admin/maria/alicia)" />
           </div>
           <div class="field-group">
             <label class="field-label" for="password">Contraseña</label>
@@ -1484,21 +1484,13 @@
                   Resumen semanal:
                   <span id="summaryAdminSemana">Alicia: 0 h · María: 0 h</span>
                 </div>
-                <div class="chip-target" style="margin-top:6px;">
-                  Resumen mensual:
-                  <span id="summaryAdminMes">Alicia: 0 h · María: 0 h</span>
-                </div>
-                <div class="chip-target" style="margin-top:6px;">
-                  Estado en tiempo real:
-                  <span id="summaryAdminEstado">Alicia: — · María: —</span>
-                </div>
                 <div class="control-summary" id="summaryControlAdmin">
                   Semana actual basada en fichajes guardados en este dispositivo.
                 </div>
               </div>
               <div class="control-buttons">
                 <button id="btnResetFichajes" class="btn btn-danger btn-small">
-                  Borrar todos los fichajes (nube)
+                  Borrar todos los fichajes locales
                 </button>
               </div>
             </div>
@@ -1527,13 +1519,151 @@
     </section>
   </div>
 
-  
-  <!-- Firebase (compat) for simple copy/paste setup -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <!-- Firebase SDKs (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 
-<script>
+  <script>
+
+    // =========================
+    // Firebase (Auth + Firestore) - FibaroTeleco
+    // =========================
+    const firebaseConfig = {
+      apiKey: "AIzaSyB_DvfW395pemIz9kLZBtCqhQpouHDenYo",
+      authDomain: "horarios-84ca8.firebaseapp.com",
+      projectId: "horarios-84ca8",
+      storageBucket: "horarios-84ca8.firebasestorage.app",
+      messagingSenderId: "899817963772",
+      appId: "1:899817963772:web:a7a33b7376ab1f9d415779"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    // Mejor soporte offline y multi-pestaña (si el navegador lo permite)
+    try {
+      db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+    } catch (_) {}
+    const GLOBAL_STATE_REF = db.doc("config/globalState");
+
+    // UIDs permitidos (Firebase Auth)
+    const ALLOWED_UID_BY_EMAIL = {
+      "admi@fibaroteleco.com": "VhQBij9wvfPVuqmRIYTdCYZ3Yal1",
+      "m.vidal@fibaroteleco.com": "kI0jmetDLDcyZZsTspRXbnRBdU22",
+      "alicia@fibaroteleco.com": "hnsJAfH0whctrkGJ31j5moS0xQz2"
+    };
+
+    // Perfil/rol por email
+    const PROFILE_BY_EMAIL = {
+      "admi@fibaroteleco.com": { username: "admin", displayName: "Admin", role: "admin" },
+      "m.vidal@fibaroteleco.com": { username: "maria", displayName: "María", role: "empleado", weeklyGoalHours: 40 },
+      "alicia@fibaroteleco.com": { username: "alicia", displayName: "Alicia", role: "empleado", weeklyGoalHours: 40 }
+    };
+
+    let unsubscribeGlobalState = null;
+    let isApplyingRemoteState = false;
+    let hasLoadedRemote = false;
+    let cloudSaveTimer = null;
+
+    function getProfileByEmail(email) {
+      const e = (email || "").toLowerCase().trim();
+      return PROFILE_BY_EMAIL[e] || null;
+    }
+
+    function normalizeAppState(s) {
+      const out = s && typeof s === "object" ? s : {};
+      if (!Array.isArray(out.vacationRequests)) out.vacationRequests = [];
+      if (!Array.isArray(out.timeEntries)) out.timeEntries = [];
+      if (!Array.isArray(out.tasks)) out.tasks = [];
+      if (!out.vacationCounters || typeof out.vacationCounters !== "object") out.vacationCounters = {};
+      return out;
+    }
+
+    function refreshViewsFromState() {
+      // Re-render principal (todas las secciones) cuando llega un cambio desde Firestore
+      ensureVacationCountersForEmployees();
+      ensureTasksArray();
+
+      actualizarUIUsuario();
+
+      // Horario (depende de vacaciones aprobadas para cálculos/etiquetas)
+      try { aplicarFiltrosHorario(); } catch (e) { /* puede no estar inicializado aún */ }
+
+      // Vacaciones
+      renderMisSolicitudes();
+      renderAdminSolicitudes();
+      updateVacationCountersUI();
+
+      // Control horario (fichajes)
+      updateEmpleadoControlUI();
+      updateAdminControlUI();
+
+      // Agenda compartida
+      renderAgenda();
+    }
+
+    function startFirestoreSync() {
+      hasLoadedRemote = false;
+
+      if (unsubscribeGlobalState) {
+        unsubscribeGlobalState();
+        unsubscribeGlobalState = null;
+      }
+
+      unsubscribeGlobalState = GLOBAL_STATE_REF.onSnapshot(async (doc) => {
+        try {
+          if (!doc.exists) {
+            // Primera vez: subimos el estado actual al cloud
+            const payload = sanitizeForFirestore(Object.assign({}, appState, {
+              _meta: {
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                createdBy: auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : "unknown"
+              }
+            }));
+            await GLOBAL_STATE_REF.set(payload, { merge: true });
+            hasLoadedRemote = true;
+            return;
+          }
+
+          const remote = normalizeAppState(doc.data());
+
+          // Fuente de la verdad = cloud
+          isApplyingRemoteState = true;
+          appState = remote;
+
+          // Guardamos copia local como caché (sin re-escribir al cloud)
+          try { localStorage.setItem(STORAGE_KEY_STATE, JSON.stringify(appState)); } catch (_) {}
+
+          ensureVacationCountersForEmployees();
+          ensureTasksArray();
+          refreshViewsFromState();
+
+          isApplyingRemoteState = false;
+          hasLoadedRemote = true;
+        } catch (e) {
+          console.error("Error aplicando globalState", e);
+          isApplyingRemoteState = false;
+        }
+      }, (err) => {
+        console.error("Error escuchando globalState", err);
+      });
+    }
+
+    async function firebaseLogin(email, password) {
+      const e = (email || "").toLowerCase().trim();
+      try {
+        return await auth.signInWithEmailAndPassword(e, password);
+      } catch (err) {
+        // Si el usuario no existe aún, lo creamos (opcional). Luego lo validamos por UID.
+        if (err && err.code === "auth/user-not-found") {
+          await auth.createUserWithEmailAndPassword(e, password);
+          return await auth.signInWithEmailAndPassword(e, password);
+        }
+        throw err;
+      }
+    }
+
     // =========================
     // Datos del cuadrante (desde tu Excel)
     // =========================
@@ -1567,219 +1697,10 @@
     // =========================
     // Usuarios y roles
     // =========================
-    
-    // =========================
-    // Firebase (Auth + Firestore) — estado ONLINE en tiempo real
-    // =========================
-    const firebaseConfig = {
-      apiKey: "AIzaSyB_DvfW395pemIz9kLZBtCqhQpouHDenYo",
-      authDomain: "horarios-84ca8.firebaseapp.com",
-      projectId: "horarios-84ca8",
-      storageBucket: "horarios-84ca8.firebasestorage.app",
-      messagingSenderId: "899817963772",
-      appId: "1:899817963772:web:a7a33b7376ab1f9d415779"
-    };
-
-    // Seguridad práctica: solo permitimos estas 3 cuentas (por email+UID real)
-    const ACCOUNT_BY_USERNAME = {
-      admin: {
-        username: "admin",
-        email: "admi@fibaroteleco.com",
-        uid: "hnsJAfH0whctrkGJ31j5moS0xQz2",
-        role: "admin",
-        nombre: "Admin"
-      },
-      maria: {
-        username: "maria",
-        email: "m.vidal@fibaroteleco.com",
-        uid: "kI0jmetDLDcyZZsTspRXbnRBdU22",
-        role: "empleado",
-        nombre: "María",
-        personaKey: "maria",
-        objetivoSemanal: 35
-      },
-      alicia: {
-        username: "alicia",
-        email: "alicia@fibaroteleco.com",
-        uid: "VhQBij9wvfPVuqmRIYTdCYZ3Yal1",
-        role: "empleado",
-        nombre: "Alicia",
-        personaKey: "alicia",
-        objetivoSemanal: 35
-      }
-    };
-
-    const ACCOUNT_BY_EMAIL = {
-      "admi@fibaroteleco.com": ACCOUNT_BY_USERNAME.admin,
-      "m.vidal@fibaroteleco.com": ACCOUNT_BY_USERNAME.maria,
-      "alicia@fibaroteleco.com": ACCOUNT_BY_USERNAME.alicia
-    };
-
-    // Inicializa Firebase
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-    const cloudDocRef = db.doc("config/globalState");
-
-    let cloudUnsub = null;
-    let cloudReady = false;
-    let applyingRemote = false;
-
-    function deepClone(obj) {
-      return JSON.parse(JSON.stringify(obj || {}));
-    }
-
-    function sanitizeForFirestore(value) {
-      if (value === undefined) return null; // Firestore no acepta undefined
-      if (value === null) return null;
-
-      const t = typeof value;
-      if (t === "number") {
-        if (!isFinite(value)) return null;
-        return value;
-      }
-      if (t === "string" || t === "boolean") return value;
-      if (value instanceof Date) return value.toISOString();
-      if (Array.isArray(value)) {
-        return value.map(sanitizeForFirestore);
-      }
-      if (t === "object") {
-        const out = {};
-        for (const k in value) {
-          if (!Object.prototype.hasOwnProperty.call(value, k)) continue;
-          const v = sanitizeForFirestore(value[k]);
-          // quitamos nulls “inútiles” solo si prefieres; aquí los dejamos para estabilidad
-          out[k] = v;
-        }
-        return out;
-      }
-      // funciones/símbolos/etc.
-      return null;
-    }
-
-    let pendingSaveTimer = null;
-    let pendingPatch = null;
-
-    function cloudMerge(patch) {
-      if (!cloudReady || applyingRemote) return;
-      const clean = sanitizeForFirestore(patch);
-      // Debounce: agrupa muchos cambios seguidos (por ejemplo, teclear) en una sola escritura
-      pendingPatch = Object.assign({}, pendingPatch || {}, clean || {});
-      clearTimeout(pendingSaveTimer);
-      pendingSaveTimer = setTimeout(() => {
-        const toSend = pendingPatch;
-        pendingPatch = null;
-        cloudDocRef.set(toSend, { merge: true }).catch((e) => {
-          console.error("Firestore write error:", e);
-        });
-      }, 250);
-    }
-
-    function applyRemoteState(data) {
-      applyingRemote = true;
-      try {
-        // Solo sincronizamos lo “editable” por usuarios (agenda/vacaciones/fichajes)
-        if (data && Array.isArray(data.tasks)) appState.tasks = data.tasks;
-        if (data && Array.isArray(data.vacationRequests)) appState.vacationRequests = data.vacationRequests;
-        if (data && data.vacationCounters && typeof data.vacationCounters === "object") appState.vacationCounters = data.vacationCounters;
-        if (data && Array.isArray(data.timeEntries)) appState.timeEntries = data.timeEntries;
-
-        // Normalización defensiva
-        ensureVacationCountersForEmployees();
-        ensureTasksArray();
-
-        // Guardamos caché local por si se queda sin conexión
-        try { localStorage.setItem(STORAGE_KEY_STATE, JSON.stringify(appState)); } catch (_) {}
-
-        // Re-render completo
-        try { aplicarFiltrosHorario(); } catch (_) {}
-        try { renderMisSolicitudes(); } catch (_) {}
-        try { renderAdminSolicitudes(); } catch (_) {}
-        try { renderAgenda(); } catch (_) {}
-        try { updateEmpleadoControlUI(); } catch (_) {}
-        try { updateAdminControlUI(); } catch (_) {}
-      } finally {
-        applyingRemote = false;
-      }
-    }
-
-    function startCloudSubscription() {
-      if (cloudUnsub) return;
-      cloudUnsub = cloudDocRef.onSnapshot((snap) => {
-        cloudReady = true;
-        if (!snap.exists) {
-          // Primer arranque: subimos el estado local (vacío o con caché)
-          cloudMerge({
-            tasks: appState.tasks,
-            vacationRequests: appState.vacationRequests,
-            vacationCounters: appState.vacationCounters,
-            timeEntries: appState.timeEntries
-          });
-          return;
-        }
-        applyRemoteState(snap.data() || {});
-      }, (err) => {
-        console.error("Firestore onSnapshot error:", err);
-        cloudReady = false;
-      });
-    }
-
-    function stopCloudSubscription() {
-      if (cloudUnsub) {
-        cloudUnsub();
-        cloudUnsub = null;
-      }
-      cloudReady = false;
-    }
-
-    async function captureLocationOnce(actionLabel) {
-      return new Promise((resolve) => {
-        if (!navigator.geolocation) {
-          resolve({ action: actionLabel, ok: false, error: "Sin geolocalización", ts: getNowISODateTime() });
-          return;
-        }
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            const { latitude, longitude, accuracy } = pos.coords;
-            resolve({
-              action: actionLabel,
-              ok: true,
-              lat: latitude,
-              lng: longitude,
-              accuracy: accuracy,
-              ts: getNowISODateTime()
-            });
-          },
-          (err) => {
-            resolve({
-              action: actionLabel,
-              ok: false,
-              error: err && err.message ? err.message : String(err || "Error ubicación"),
-              ts: getNowISODateTime()
-            });
-          },
-          { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-        );
-      });
-    }
-
-    function addEntryEvent(entry, type, locObj) {
-      if (!entry) return;
-      if (!Array.isArray(entry.eventos)) entry.eventos = [];
-      entry.eventos.push({
-        type,
-        ts: getNowISODateTime(),
-        loc: locObj || null
-      });
-    }
-
-const USERS = [
-      { username: "admin",  password: "admin123",  role: "admin",    nombre: "Administrador" },
-      { username: "keño",   password: "keno123",   role: "admin",    nombre: "Keño" },
-      { username: "mejias", password: "mejias123", role: "admin",    nombre: "Mejías" },
-      { username: "alicia", password: "alicia123", role: "empleado", nombre: "Alicia", personaKey: "alicia", objetivoSemanal: 35 },
-      { username: "maria",  password: "maria123",  role: "empleado", nombre: "María",  personaKey: "maria",  objetivoSemanal: 40 },
-      { username: "tecnico", password: "tecnico123", role: "tecnico", nombre: "Técnico", objetivoSemanal: 40 }
+    const USERS = [
+      { username: "admin",  password: "", role: "admin",    nombre: "Administrador" },
+      { username: "alicia", password: "", role: "empleado", nombre: "Alicia", weeklyGoalHours: 40 },
+      { username: "maria",  password: "", role: "empleado", nombre: "María", weeklyGoalHours: 40 }
     ];
 
     const ROLE_LABELS = {
@@ -1851,26 +1772,67 @@ const USERS = [
       }
     }
 
-    
-    function saveState(patch = null) {
+    function saveState() {
+      // Guardado local (sirve como caché/offline por dispositivo)
       try {
         localStorage.setItem(STORAGE_KEY_STATE, JSON.stringify(appState));
       } catch (e) {
         console.error("Error guardando estado", e);
       }
-      // ONLINE: guardamos en Firestore (en tiempo real)
-      if (patch && typeof patch === "object") {
-        cloudMerge(patch);
-      } else {
-        cloudMerge({
-          tasks: appState.tasks,
-          vacationRequests: appState.vacationRequests,
-          vacationCounters: appState.vacationCounters,
-          timeEntries: appState.timeEntries
-        });
-      }
+
+      // Guardado online (Firestore) con debounce para no spamear escrituras
+      scheduleCloudSave();
     }
 
+    // ---- Sincronización Firestore (online de verdad) ----
+
+// Limpia 'undefined' (Firestore no lo acepta) y evita guardar cosas raras.
+function sanitizeForFirestore(value) {
+  if (value === undefined) return null;
+  if (value === null) return null;
+  if (Array.isArray(value)) return value.map(sanitizeForFirestore);
+  if (typeof value === "object") {
+    // Conserva Timestamp / GeoPoint si vienen de Firestore
+    const isTimestamp = value && typeof value.toDate === "function" && typeof value.seconds === "number";
+    if (isTimestamp) return value;
+    const out = {};
+    Object.keys(value).forEach(k => {
+      const v = value[k];
+      if (v === undefined) out[k] = null;
+      else out[k] = sanitizeForFirestore(v);
+    });
+    return out;
+  }
+  return value;
+}
+
+
+    function scheduleCloudSave() {
+      try {
+        if (!auth || !auth.currentUser) return;
+        if (!hasLoadedRemote) return;              // evita sobrescribir remoto al arrancar
+        if (isApplyingRemoteState) return;          // evita bucles al aplicar snapshots remotos
+      } catch (_) { return; }
+
+      if (cloudSaveTimer) clearTimeout(cloudSaveTimer);
+      cloudSaveTimer = setTimeout(async () => {
+        try {
+          if (!auth.currentUser) return;
+          if (isApplyingRemoteState) return;
+
+          const payload = sanitizeForFirestore(Object.assign({}, appState, {
+            _meta: {
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+              updatedBy: auth.currentUser.email || auth.currentUser.uid
+            }
+          }));
+
+          await GLOBAL_STATE_REF.set(payload, { merge: true });
+        } catch (e) {
+          console.error("Error guardando en Firestore", e);
+        }
+      }, 600);
+    }
 
     function ensureVacationCountersForEmployees() {
       if (!appState.vacationCounters || typeof appState.vacationCounters !== "object") {
@@ -2003,8 +1965,8 @@ const USERS = [
       }
       const n = Number.isFinite(value) ? value : 0;
       appState.vacationCounters[personaKey].totalDays = Math.max(0, n);
-      saveState({ vacationCounters: appState.vacationCounters });
-}
+      saveState();
+    }
 
     function getUsedVacationDays(personaKey) {
       return appState.vacationRequests
@@ -2471,7 +2433,7 @@ const USERS = [
         por: currentUser ? currentUser.username : "admin",
         fecha: new Date().toISOString()
       };
-      saveState({ vacationRequests: appState.vacationRequests });
+      saveState();
       renderMisSolicitudes();
       renderAdminSolicitudes();
       updateVacationCountersUI();
@@ -2482,7 +2444,7 @@ const USERS = [
       const idx = appState.vacationRequests.findIndex(r => r.id === id);
       if (idx === -1) return;
       appState.vacationRequests.splice(idx, 1);
-      saveState({ vacationRequests: appState.vacationRequests });
+      saveState();
       renderMisSolicitudes();
       renderAdminSolicitudes();
       updateVacationCountersUI();
@@ -2522,7 +2484,8 @@ const USERS = [
       };
 
       appState.vacationRequests.push(nueva);
-      saveState({ vacationRequests: appState.vacationRequests });
+      saveState();
+
       vacStartInput.value = "";
       vacEndInput.value = "";
       vacCommentInput.value = "";
@@ -2618,7 +2581,8 @@ const USERS = [
       nueva.weekKey = getWeekKeyFromISO(fecha);
 
       appState.tasks.push(nueva);
-      saveState({ tasks: appState.tasks });
+      saveState();
+
       taskTitleInput.value = "";
       taskDescriptionInput.value = "";
 
@@ -2842,7 +2806,7 @@ const USERS = [
       const t = appState.tasks.find(tt => tt.id === taskId);
       if (!t) return;
       t.done = done;
-      saveState({ tasks: appState.tasks });
+      saveState();
       renderAgenda();
     }
 
@@ -2932,94 +2896,6 @@ const USERS = [
       return millisToHours(total);
     }
 
-
-    // Horas “en vivo”: si la jornada está abierta, cuenta hasta ahora (restando pausas y pausa actual si existe)
-    function computeEntryHoursSoFar(entry) {
-      if (!entry || !entry.inicio) return 0;
-      const start = new Date(entry.inicio);
-      const end = entry.fin ? new Date(entry.fin) : new Date();
-      if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
-
-      let total = end - start;
-
-      // Pausas cerradas
-      if (Array.isArray(entry.pausas)) {
-        entry.pausas.forEach(p => {
-          if (p.inicio && p.fin) {
-            const ps = new Date(p.inicio);
-            const pe = new Date(p.fin);
-            if (!isNaN(ps.getTime()) && !isNaN(pe.getTime())) {
-              total -= (pe - ps);
-            }
-          }
-        });
-      }
-
-      // Si está en pausa ahora mismo, restamos desde lastPauseInicio hasta ahora/fin
-      if (entry.paused && entry.lastPauseInicio) {
-        const ps = new Date(entry.lastPauseInicio);
-        const pe = entry.fin ? new Date(entry.fin) : new Date();
-        if (!isNaN(ps.getTime()) && !isNaN(pe.getTime()) && pe > ps) {
-          total -= (pe - ps);
-        }
-      }
-
-      if (total < 0) total = 0;
-      return millisToHours(total);
-    }
-
-    function getMonthKeyFromISODate(isoDate) {
-      if (!isoDate || typeof isoDate !== "string") return "";
-      // "YYYY-MM-DD" => "YYYY-MM"
-      return isoDate.slice(0, 7);
-    }
-
-    function getCurrentMonthKey() {
-      const d = new Date();
-      const m = String(d.getMonth() + 1).padStart(2, "0");
-      return `${d.getFullYear()}-${m}`;
-    }
-
-    function getSummaryHoursCurrentMonth() {
-      const mk = getCurrentMonthKey();
-      let a = 0, m = 0;
-      appState.timeEntries.forEach(e => {
-        if (!e || !e.fecha) return;
-        const entryMonth = getMonthKeyFromISODate(e.fecha);
-        if (entryMonth !== mk) return;
-
-        // Cerradas + abiertas (en vivo)
-        const h = e.estado === "cerrada" ? computeEntryHours(e) : computeEntryHoursSoFar(e);
-        if (e.personaKey === "alicia") a += h;
-        if (e.personaKey === "maria") m += h;
-      });
-      return { alicia: a, maria: m };
-    }
-
-    function getRealtimeStatusByPersona(personaKey) {
-      // busca jornada abierta más reciente de esa persona
-      const open = appState.timeEntries
-        .slice()
-        .filter(e => e && e.personaKey === personaKey && e.estado === "abierta" && !e.fin)
-        .sort((a,b) => (b.inicio || "").localeCompare(a.inicio || ""))[0];
-
-      if (!open) return { status: "Fuera", since: "-", loc: "—" };
-
-      const status = open.paused ? "Pausa" : "Trabajando";
-      const since = open.inicio ? formatTimeFromISO(open.inicio) : "-";
-
-      // última ubicación (según eventos)
-      let loc = "Sin ubicación";
-      if (Array.isArray(open.eventos) && open.eventos.length) {
-        const last = open.eventos[open.eventos.length - 1];
-        if (last && last.loc && last.loc.ok && typeof last.loc.lat === "number" && typeof last.loc.lng === "number") {
-          loc = `lat ${last.loc.lat.toFixed(3)}, lon ${last.loc.lng.toFixed(3)}`;
-        }
-      } else if (open.ubicacionInicio && typeof open.ubicacionInicio.lat === "number") {
-        loc = `lat ${open.ubicacionInicio.lat.toFixed(3)}, lon ${open.ubicacionInicio.lng.toFixed(3)}`;
-      }
-      return { status, since, loc };
-    }
     function formatTimeFromISO(iso) {
       if (!iso) return "-";
       const d = new Date(iso);
@@ -3049,15 +2925,13 @@ const USERS = [
       });
     }
 
-    
     function getSummaryHoursCurrentWeek() {
       const currentWeek = getCurrentWeekKey();
       let a = 0, m = 0;
       appState.timeEntries.forEach(e => {
-        if (!e) return;
         ensureWeekKey(e);
-        if (e.weekKey === currentWeek) {
-          const h = (e.estado === "cerrada") ? computeEntryHours(e) : computeEntryHoursSoFar(e);
+        if (e.weekKey === currentWeek && e.estado === "cerrada") {
+          const h = computeEntryHours(e);
           if (e.personaKey === "alicia") a += h;
           if (e.personaKey === "maria") m += h;
         }
@@ -3065,11 +2939,32 @@ const USERS = [
       return { alicia: a, maria: m };
     }
 
+
+    function getSummaryHoursCurrentMonth() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, "0");
+      const prefix = `${y}-${m}`;
+      let a = 0, mm = 0;
+      appState.timeEntries.forEach(e => {
+        if (!e || e.estado !== "cerrada") return;
+        const fecha = e.fecha || "";
+        if (!fecha.startsWith(prefix)) return;
+        const persona = e.personaKey || e.username;
+        const h = computeEntryHours(e);
+        if (persona === "alicia") a += h;
+        if (persona === "maria") mm += h;
       });
-      return { alicia: a, maria: m };
+      return { alicia: a, maria: mm };
     }
 
-    function updateEmpleadoControlUI() {
+    function getLiveStatusForPersona(personaKey) {
+      const active = appState.timeEntries.find(e => (e && e.estado === "abierta" && ((e.personaKey || e.username) === personaKey)));
+      if (!active) return "sin jornada";
+      return active.paused ? "en pausa" : "trabajando";
+    }
+
+        function updateEmpleadoControlUI() {
       if (!currentUser || (currentUser.role !== "empleado" && currentUser.role !== "tecnico")) return;
       const objetivo = (typeof currentUser.objetivoSemanal === "number" && !isNaN(currentUser.objetivoSemanal))
         ? currentUser.objetivoSemanal
@@ -3126,27 +3021,15 @@ const USERS = [
         });
     }
 
-    
     function updateAdminControlUI() {
       if (!currentUser || currentUser.role !== "admin") return;
-
-      const resumenSemana = getSummaryHoursCurrentWeek();
-      summaryAdminSemana.textContent = `Alicia: ${formatDurationHours(resumenSemana.alicia)} · María: ${formatDurationHours(resumenSemana.maria)}`;
-
+      const resumen = getSummaryHoursCurrentWeek();
       const resumenMes = getSummaryHoursCurrentMonth();
-      const summaryAdminMesEl = document.getElementById("summaryAdminMes");
-      if (summaryAdminMesEl) {
-        summaryAdminMesEl.textContent = `Alicia: ${formatDurationHours(resumenMes.alicia)} · María: ${formatDurationHours(resumenMes.maria)}`;
-      }
+      const liveA = getLiveStatusForPersona("alicia");
+      const liveM = getLiveStatusForPersona("maria");
 
-      const estadoA = getRealtimeStatusByPersona("alicia");
-      const estadoM = getRealtimeStatusByPersona("maria");
-      const summaryAdminEstadoEl = document.getElementById("summaryAdminEstado");
-      if (summaryAdminEstadoEl) {
-        summaryAdminEstadoEl.textContent = `Alicia: ${estadoA.status} (${estadoA.since}) · María: ${estadoM.status} (${estadoM.since})`;
-      }
-
-      summaryControlAdmin.textContent = "Semana/mes y estado calculados con los fichajes guardados en la NUBE (sincronizado en tiempo real).";
+      summaryAdminSemana.textContent = `Semana actual · Alicia: ${formatDurationHours(resumen.alicia)} · María: ${formatDurationHours(resumen.maria)}`;
+      summaryControlAdmin.textContent = `Estado ahora · Alicia: ${liveA} · María: ${liveM} · Mes actual · Alicia: ${formatDurationHours(resumenMes.alicia)} · María: ${formatDurationHours(resumenMes.maria)} (datos en la nube)`;
 
       const now = new Date();
       const sixWeeksAgo = new Date(now.getTime() - 6 * 7 * 24 * 60 * 60 * 1000);
@@ -3155,30 +3038,21 @@ const USERS = [
       appState.timeEntries
         .slice()
         .filter(e => {
-          if (!e || !e.fecha) return false;
+          if (!e.fecha) return false;
           const d = new Date(e.fecha + "T00:00:00");
           return !isNaN(d.getTime()) && d >= sixWeeksAgo;
         })
         .sort((a,b) => {
-          if ((a.fecha || "") === (b.fecha || "")) return (a.username || "").localeCompare(b.username || "");
+          if (a.fecha === b.fecha) return (a.username || "").localeCompare(b.username || "");
           return (a.fecha || "").localeCompare(b.fecha || "");
         })
         .forEach(e => {
           const tr = document.createElement("tr");
-
-          const horas = (e.estado === "cerrada") ? computeEntryHours(e) : computeEntryHoursSoFar(e);
+          const horas = computeEntryHours(e);
           const personaNombre = e.personaKey === "alicia" ? "Alicia" : "María";
-
-          // última ubicación (evento) si existe
-          let locText = "Sin ubicación";
-          if (Array.isArray(e.eventos) && e.eventos.length) {
-            const last = e.eventos[e.eventos.length - 1];
-            if (last && last.loc && last.loc.ok) {
-              locText = `lat ${Number(last.loc.lat).toFixed(3)}, lon ${Number(last.loc.lng).toFixed(3)}`;
-            }
-          } else if (e.ubicacionInicio) {
-            locText = `lat ${Number(e.ubicacionInicio.lat).toFixed(3)}, lon ${Number(e.ubicacionInicio.lng).toFixed(3)}`;
-          }
+          const locText = e.ubicacionInicio
+            ? `lat ${e.ubicacionInicio.lat.toFixed(3)}, lon ${e.ubicacionInicio.lng.toFixed(3)}`
+            : "Sin ubicación";
 
           tr.innerHTML = `
             <td>${personaNombre}</td>
@@ -3190,8 +3064,12 @@ const USERS = [
               <input class="inline-input" type="time" value="${formatTimeFromISO(e.fin)}" data-field="fin" />
             </td>
             <td>${formatDurationHours(horas)}</td>
-            <td><span class="location-pill">🌍 ${locText}</span></td>
-            <td><button class="btn btn-ghost btn-small btn-success">Guardar</button></td>
+            <td>
+              <span class="location-pill">🌍 ${locText}</span>
+            </td>
+            <td>
+              <button class="btn btn-ghost btn-small btn-success">Guardar</button>
+            </td>
           `;
 
           const btnGuardar = tr.querySelector("button");
@@ -3208,9 +3086,8 @@ const USERS = [
               const [h2, m2] = inputFin.value.split(":");
               const d2 = new Date(e.fecha + "T" + h2 + ":" + m2 + ":00");
               e.fin = d2.toISOString();
-              e.estado = "cerrada";
             }
-            saveState({ timeEntries: appState.timeEntries });
+            saveState();
             updateEmpleadoControlUI();
             updateAdminControlUI();
           });
@@ -3219,7 +3096,35 @@ const USERS = [
         });
     }
 
-    async function startShiftWithLocation() {
+    // =========================
+    // Geolocalización (captura en inicio/pausa/reanudar/finalizar)
+    // =========================
+    function captureLocationSafe() {
+      return new Promise((resolve) => {
+        try {
+          if (!navigator.geolocation) return resolve(null);
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              const { latitude, longitude, accuracy } = pos.coords;
+              resolve({
+                lat: latitude,
+                lng: longitude,
+                accuracy: accuracy,
+                at: new Date().toISOString()
+              });
+            },
+            () => resolve(null),
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+          );
+        } catch (_) {
+          resolve(null);
+        }
+      });
+    }
+
+
+
+    function startShiftWithLocation() {
       if (!currentUser || (currentUser.role !== "empleado" && currentUser.role !== "tecnico")) return;
 
       const existing = getActiveEntryForUser(currentUser.username);
@@ -3227,44 +3132,6 @@ const USERS = [
         estadoControlEmpleado.textContent = "Ya tienes una jornada abierta. Finalízala o pausa antes de iniciar otra.";
         return;
       }
-
-      estadoControlEmpleado.textContent = "Iniciando jornada… obteniendo ubicación…";
-      const loc = await captureLocationOnce("start");
-
-      const nowIso = getNowISODateTime();
-      const todayIso = getTodayISO();
-
-      const entry = {
-        id: "log_" + Date.now() + "_" + Math.floor(Math.random()*1000),
-        username: currentUser.username,
-        personaKey: currentUser.personaKey,
-        fecha: todayIso,
-        inicio: nowIso,
-        fin: null,
-        pausas: [],
-        estado: "abierta",
-        paused: false,
-        lastPauseInicio: null,
-        ubicacionInicio: (loc && loc.ok) ? { lat: loc.lat, lng: loc.lng, accuracy: loc.accuracy } : null,
-        ubicacionPausa: null,
-        ubicacionReanudar: null,
-        ubicacionFin: null,
-        eventos: []
-      };
-      addEntryEvent(entry, "start", loc);
-
-      ensureWeekKey(entry);
-      appState.timeEntries.push(entry);
-
-      saveState({ timeEntries: appState.timeEntries });
-      updateEmpleadoControlUI();
-      updateAdminControlUI();
-
-      estadoControlEmpleado.textContent = (loc && loc.ok)
-        ? "Jornada iniciada con ubicación."
-        : "Jornada iniciada (sin ubicación).";
-    }
-
 
       const baseEntry = () => {
         const nowIso = getNowISODateTime();
@@ -3284,8 +3151,8 @@ const USERS = [
         };
         ensureWeekKey(entry);
         appState.timeEntries.push(entry);
-        saveState({ timeEntries: appState.timeEntries });
-      updateEmpleadoControlUI();
+        saveState();
+        updateEmpleadoControlUI();
       };
 
       if (!navigator.geolocation) {
@@ -3319,8 +3186,8 @@ const USERS = [
           };
           ensureWeekKey(entry);
           appState.timeEntries.push(entry);
-          saveState({ timeEntries: appState.timeEntries });
-      updateEmpleadoControlUI();
+          saveState();
+          updateEmpleadoControlUI();
         },
         (err) => {
           console.warn("Error geolocalización:", err);
@@ -3335,7 +3202,6 @@ const USERS = [
       );
     }
 
-    
     async function pauseShift() {
       if (!currentUser || (currentUser.role !== "empleado" && currentUser.role !== "tecnico")) return;
       const active = getActiveEntryForUser(currentUser.username);
@@ -3347,35 +3213,14 @@ const USERS = [
         estadoControlEmpleado.textContent = "La jornada ya está en pausa.";
         return;
       }
-
-      estadoControlEmpleado.textContent = "Pausando… obteniendo ubicación…";
-      const loc = await captureLocationOnce("pause");
-
+      const loc = await captureLocationSafe();
       active.paused = true;
       active.lastPauseInicio = getNowISODateTime();
-      active.ubicacionPausa = (loc && loc.ok) ? { lat: loc.lat, lng: loc.lng, accuracy: loc.accuracy } : null;
-      addEntryEvent(active, "pause", loc);
-
-      saveState({ timeEntries: appState.timeEntries });
-      updateEmpleadoControlUI();
-      updateAdminControlUI();
-
-      estadoControlEmpleado.textContent = (loc && loc.ok)
-        ? "Jornada en pausa (ubicación registrada)."
-        : "Jornada en pausa (sin ubicación).";
-    }
-
-      if (active.paused) {
-        estadoControlEmpleado.textContent = "La jornada ya está en pausa.";
-        return;
-      }
-      active.paused = true;
-      active.lastPauseInicio = getNowISODateTime();
-      saveState({ timeEntries: appState.timeEntries });
+      active.lastPauseUbicacion = loc;
+      saveState();
       updateEmpleadoControlUI();
     }
 
-    
     async function resumeShift() {
       if (!currentUser || (currentUser.role !== "empleado" && currentUser.role !== "tecnico")) return;
       const active = getActiveEntryForUser(currentUser.username);
@@ -3387,43 +3232,22 @@ const USERS = [
         estadoControlEmpleado.textContent = "La jornada no está en pausa.";
         return;
       }
-
-      estadoControlEmpleado.textContent = "Reanudando… obteniendo ubicación…";
-      const loc = await captureLocationOnce("resume");
-
+      const loc = await captureLocationSafe();
       const pauseEnd = getNowISODateTime();
       if (!Array.isArray(active.pausas)) active.pausas = [];
-      active.pausas.push({ inicio: active.lastPauseInicio, fin: pauseEnd });
-
+      active.pausas.push({
+        inicio: active.lastPauseInicio,
+        fin: pauseEnd,
+        ubicacionInicio: active.lastPauseUbicacion || null,
+        ubicacionFin: loc
+      });
       active.paused = false;
       active.lastPauseInicio = null;
-
-      active.ubicacionReanudar = (loc && loc.ok) ? { lat: loc.lat, lng: loc.lng, accuracy: loc.accuracy } : null;
-      addEntryEvent(active, "resume", loc);
-
-      saveState({ timeEntries: appState.timeEntries });
-      updateEmpleadoControlUI();
-      updateAdminControlUI();
-
-      estadoControlEmpleado.textContent = (loc && loc.ok)
-        ? "Jornada reanudada (ubicación registrada)."
-        : "Jornada reanudada (sin ubicación).";
-    }
-
-      if (!active.paused) {
-        estadoControlEmpleado.textContent = "La jornada no está en pausa.";
-        return;
-      }
-      const pauseEnd = getNowISODateTime();
-      if (!Array.isArray(active.pausas)) active.pausas = [];
-      active.pausas.push({ inicio: active.lastPauseInicio, fin: pauseEnd });
-      active.paused = false;
-      active.lastPauseInicio = null;
-      saveState({ timeEntries: appState.timeEntries });
+      active.lastPauseUbicacion = null;
+      saveState();
       updateEmpleadoControlUI();
     }
 
-    
     async function endShift() {
       if (!currentUser || (currentUser.role !== "empleado" && currentUser.role !== "tecnico")) return;
       const active = getActiveEntryForUser(currentUser.username);
@@ -3431,42 +3255,24 @@ const USERS = [
         estadoControlEmpleado.textContent = "No hay jornada abierta que finalizar.";
         return;
       }
-
-      estadoControlEmpleado.textContent = "Finalizando… obteniendo ubicación…";
-      const loc = await captureLocationOnce("end");
-
+      const loc = await captureLocationSafe();
       if (active.paused) {
         const pauseEnd = getNowISODateTime();
         if (!Array.isArray(active.pausas)) active.pausas = [];
-        active.pausas.push({ inicio: active.lastPauseInicio, fin: pauseEnd });
+        active.pausas.push({
+          inicio: active.lastPauseInicio,
+          fin: pauseEnd,
+          ubicacionInicio: active.lastPauseUbicacion || null,
+          ubicacionFin: loc
+        });
         active.paused = false;
         active.lastPauseInicio = null;
-      }
-
-      active.fin = getNowISODateTime();
-      active.estado = "cerrada";
-      active.ubicacionFin = (loc && loc.ok) ? { lat: loc.lat, lng: loc.lng, accuracy: loc.accuracy } : null;
-      addEntryEvent(active, "end", loc);
-
-      saveState({ timeEntries: appState.timeEntries });
-      updateEmpleadoControlUI();
-      updateAdminControlUI();
-
-      estadoControlEmpleado.textContent = (loc && loc.ok)
-        ? "Jornada finalizada (ubicación registrada)."
-        : "Jornada finalizada (sin ubicación).";
-    }
-
-      if (active.paused) {
-        const pauseEnd = getNowISODateTime();
-        if (!Array.isArray(active.pausas)) active.pausas = [];
-        active.pausas.push({ inicio: active.lastPauseInicio, fin: pauseEnd });
-        active.paused = false;
-        active.lastPauseInicio = null;
+        active.lastPauseUbicacion = null;
       }
       active.fin = getNowISODateTime();
+      active.ubicacionFin = loc;
       active.estado = "cerrada";
-      saveState({ timeEntries: appState.timeEntries });
+      saveState();
       updateEmpleadoControlUI();
       updateAdminControlUI();
     }
@@ -3476,16 +3282,12 @@ const USERS = [
     btnResumeShift.addEventListener("click", resumeShift);
     btnEndShift.addEventListener("click", endShift);
 
-    
     btnResetFichajes.addEventListener("click", () => {
       if (!currentUser || currentUser.role !== "admin") return;
-      if (!confirm("Esto borrará TODOS los fichajes (EN LA NUBE) para todos los dispositivos. ¿Seguro?")) return;
+      if (!confirm("Esto borrará todos los fichajes guardados en este navegador. ¿Seguro?")) return;
       appState.timeEntries = [];
-      saveState({ timeEntries: appState.timeEntries });
+      saveState();
       updateEmpleadoControlUI();
-      updateAdminControlUI();
-    });
-updateEmpleadoControlUI();
       updateAdminControlUI();
     });
 
@@ -3590,63 +3392,90 @@ function actualizarUIUsuario() {
       passwordInput.value = "";
     }
 
-    
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-
-      const username = (usernameSelect.value || "").trim();
-      const password = (passwordInput.value || "").trim();
 
       loginError.style.display = "none";
       loginError.textContent = "";
 
-      // Permite elegir "admin/maria/alicia" en el desplegable
-      const acc = ACCOUNT_BY_USERNAME[username] || ACCOUNT_BY_EMAIL[username] || null;
-      const email = acc ? acc.email : username;
+      const raw = (usernameSelect.value || "").trim();
+      const password = passwordInput.value || "";
 
-      if (!email || email.indexOf("@") === -1) {
-        loginError.textContent = "Selecciona un usuario válido.";
-        loginError.style.display = "block";
-        return;
-      }
-      if (!password) {
-        loginError.textContent = "Introduce la contraseña.";
+      // Permitimos que escribas email directamente o "admin/maria/alicia"
+      const key = raw.toLowerCase();
+      const email = raw.includes("@")
+        ? key
+        : (key === "admin" ? "admi@fibaroteleco.com"
+           : key === "maria" ? "m.vidal@fibaroteleco.com"
+           : key === "alicia" ? "alicia@fibaroteleco.com"
+           : key);
+
+      if (!email || !email.includes("@")) {
+        loginError.textContent = "Escribe un email válido (o admin/maria/alicia).";
         loginError.style.display = "block";
         return;
       }
 
       try {
-        await auth.signInWithEmailAndPassword(email, password);
-        // La UI se actualiza en onAuthStateChanged()
-      } catch (err) {
-        // Si alguna vez un usuario no existiese, lo creamos (para que tú no tengas que “crear nada”)
-        if (err && (err.code === "auth/user-not-found" || err.code === "auth/invalid-login-credentials")) {
-          try {
-            await auth.createUserWithEmailAndPassword(email, password);
-          } catch (err2) {
-            loginError.textContent = (err2 && err2.message) ? err2.message : "No se pudo iniciar sesión.";
-            loginError.style.display = "block";
-            return;
-          }
-        } else {
-          loginError.textContent = (err && err.message) ? err.message : "No se pudo iniciar sesión.";
+        const cred = await firebaseLogin(email, password);
+        const fbUser = cred.user;
+        const expectedUid = ALLOWED_UID_BY_EMAIL[(fbUser.email || "").toLowerCase().trim()];
+        if (!expectedUid || fbUser.uid !== expectedUid) {
+          const actual = fbUser.uid;
+          await auth.signOut();
+          loginError.textContent = `Acceso denegado: el usuario no coincide con el UID permitido. UID actual: ${actual}`;
           loginError.style.display = "block";
+          return;
         }
+
+        const profile = getProfileByEmail(fbUser.email);
+        if (!profile) {
+          await auth.signOut();
+          loginError.textContent = "Acceso denegado: email no autorizado.";
+          loginError.style.display = "block";
+          return;
+        }
+
+        // Montamos el currentUser que tu app ya entiende
+        currentUser = {
+          username: profile.username,
+          nombre: profile.displayName,
+          name: profile.displayName,
+          role: profile.role,
+          personaKey: profile.username,
+          weeklyGoalHours: profile.weeklyGoalHours
+        };
+
+        saveCurrentUser();
+        mostrarApp();
+        startFirestoreSync();
+      } catch (err) {
+        console.error(err);
+        const msg = (err && err.code === "auth/wrong-password") ? "Contraseña incorrecta."
+          : (err && err.code === "auth/too-many-requests") ? "Demasiados intentos. Espera un momento."
+          : (err && err.code === "auth/invalid-email") ? "Email inválido."
+          : "No se pudo iniciar sesión.";
+        loginError.textContent = msg;
+        loginError.style.display = "block";
       }
     });
 
-
-    
-    btnLogout.addEventListener("click", async () => {
-      try { await auth.signOut(); } catch (_) {}
-      stopCloudSubscription();
+btnLogout.addEventListener("click", async () => {
+      try {
+        if (unsubscribeGlobalState) {
+          unsubscribeGlobalState();
+          unsubscribeGlobalState = null;
+        }
+        await auth.signOut();
+      } catch (e) {
+        console.error("Error cerrando sesión", e);
+      }
       currentUser = null;
       saveCurrentUser();
       mostrarLogin();
     });
 
-
-    tabHorario.addEventListener("click", () => setActiveTab("horario"));
+tabHorario.addEventListener("click", () => setActiveTab("horario"));
     tabVacaciones.addEventListener("click", () => setActiveTab("vacaciones"));
     tabAgenda.addEventListener("click", () => setActiveTab("agenda"));
     tabControl.addEventListener("click", () => setActiveTab("control"));
@@ -3671,65 +3500,60 @@ function actualizarUIUsuario() {
 
     btnSolicitarVacaciones.addEventListener("click", crearSolicitudVacaciones);
 
-    
     document.addEventListener("DOMContentLoaded", () => {
-      // Estado local como “caché”
-      loadState();
+      loadUsersFromStorage();
+      loadState(); // Carga local como fallback (por si Firestore está vacío)
       ensureVacationCountersForEmployees();
       ensureTasksArray();
+      mostrarLogin();
 
-      // Rellenamos el selector solo con las 3 cuentas permitidas
-      try {
-        usernameSelect.innerHTML = "";
-        ["admin","maria","alicia"].forEach(u => {
-          const opt = document.createElement("option");
-          opt.value = u;
-          opt.textContent = u;
-          usernameSelect.appendChild(opt);
-        });
-      } catch (_) {}
-
-      // Auth: el estado real de sesión lo marca Firebase
-      auth.onAuthStateChanged(async (user) => {
-        if (!user) {
-          stopCloudSubscription();
+      auth.onAuthStateChanged(async (fbUser) => {
+        if (!fbUser) {
           currentUser = null;
           saveCurrentUser();
           mostrarLogin();
           return;
         }
 
-        const email = (user.email || "").toLowerCase();
-        const acc = ACCOUNT_BY_EMAIL[email];
+        const email = (fbUser.email || "").toLowerCase().trim();
+        const expectedUid = ALLOWED_UID_BY_EMAIL[email];
 
-        if (!acc) {
-          alert("Este correo no está autorizado en esta app.");
-          try { await auth.signOut(); } catch (_) {}
-          stopCloudSubscription();
+        if (!expectedUid || fbUser.uid !== expectedUid) {
+          console.warn("UID no permitido", fbUser.uid, email);
+          try { await auth.signOut(); } catch (e) {}
+          loginError.textContent = `Acceso denegado: UID no permitido. UID actual: ${fbUser.uid}`;
+          loginError.style.display = "block";
+          currentUser = null;
+          saveCurrentUser();
           mostrarLogin();
           return;
         }
 
-        // Validación extra: UID correcto
-        if (acc.uid && user.uid !== acc.uid) {
-          alert("Usuario no autorizado (UID no coincide).");
-          try { await auth.signOut(); } catch (_) {}
-          stopCloudSubscription();
+        const profile = getProfileByEmail(email);
+        if (!profile) {
+          try { await auth.signOut(); } catch (e) {}
+          loginError.textContent = "Acceso denegado: email no autorizado.";
+          loginError.style.display = "block";
+          currentUser = null;
+          saveCurrentUser();
           mostrarLogin();
           return;
         }
 
-        // Montamos el currentUser con el formato que usa tu app
-        currentUser = Object.assign({}, acc);
+        currentUser = {
+          username: profile.username,
+          nombre: profile.displayName,
+          name: profile.displayName,
+          role: profile.role,
+          personaKey: profile.username,
+          weeklyGoalHours: profile.weeklyGoalHours
+        };
 
         saveCurrentUser();
         mostrarApp();
-
-        // Arranca sincronización en tiempo real
-        startCloudSubscription();
+        startFirestoreSync();
       });
     });
-
-  </script>
+</script>
 </body>
 </html>
