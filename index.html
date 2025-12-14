@@ -1621,7 +1621,7 @@
     let cloudSaveTimer = null;
 
     function getProfileByEmail(emailUser) {
-      const e = (email || "").toLowerCase().trim();
+      const e = (emailUser || "").toLowerCase().trim();
       // 1) Perfil editable (cloud/local)
       try {
         if (appState && appState.userProfilesByEmail && appState.userProfilesByEmail[e]) {
@@ -1715,7 +1715,7 @@ actualizarUIUsuario();
     }
 
     async function firebaseLogin(email, password) {
-      const e = (email || "").toLowerCase().trim();
+      const e = (emailUser || "").toLowerCase().trim();
       try {
         return await auth.signInWithEmailAndPassword(e, password);
       } catch (err) {
@@ -1917,7 +1917,7 @@ actualizarUIUsuario();
       }
       // Semilla: perfiles por defecto (no sobreescribe cambios del admin)
       Object.keys(PROFILE_BY_EMAIL).forEach((email) => {
-        const e = (email || "").toLowerCase().trim();
+        const e = (emailUser || "").toLowerCase().trim();
         if (!appState.userProfilesByEmail[e]) {
           const p = Object.assign({}, PROFILE_BY_EMAIL[e]);
           // Normaliza campos
