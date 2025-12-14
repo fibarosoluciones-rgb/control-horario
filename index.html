@@ -887,20 +887,20 @@
     list.innerHTML = tasks.map(t=>{
       const who = state.usersByUid.get(t.createdBy);
       const shared = (t.sharedWith||[]).map(uid=>state.usersByUid.get(uid)?.name || "—").join(", ");
-      return \`
+      return `
         <div class="card" style="padding:10px;margin-bottom:10px">
           <div class="row" style="justify-content:space-between">
             <div>
-              <div style="font-weight:800">\${escapeHtml(t.title||"(sin título)")}</div>
-              <div class="muted small">\${escapeHtml(t.dateISO||"")} \${escapeHtml(t.time||"")} · por \${escapeHtml(who?.name || who?.email || "—")}</div>
-              \${t.description ? \`<div class="small" style="margin-top:6px">\${escapeHtml(t.description)}</div>\` : ""}
-              \${shared ? \`<div class="muted small" style="margin-top:6px">Compartido con: \${escapeHtml(shared)}</div>\` : ""}
+              <div style="font-weight:800">${escapeHtml(t.title||"(sin título)")}</div>
+              <div class="muted small">${escapeHtml(t.dateISO||"")} ${escapeHtml(t.time||"")} · por ${escapeHtml(who?.name || who?.email || "—")}</div>
+              ${t.description ? `<div class="small" style="margin-top:6px">${escapeHtml(t.description)}</div>` : ""}
+              ${shared ? `<div class="muted small" style="margin-top:6px">Compartido con: ${escapeHtml(shared)}</div>` : ""}
             </div>
             <div class="row">
-              \${(state.me.role==="admin" || t.createdBy===state.me.uid) ? \`<button class="danger" data-del-task="\${t.id}">Borrar</button>\` : ""}
+              ${(state.me.role==="admin" || t.createdBy===state.me.uid) ? `<button class="danger" data-del-task="${t.id}">Borrar</button>` : ""}
             </div>
           </div>
-        </div>\`;
+        </div>`;
     }).join("");
 
     list.querySelectorAll("[data-del-task]").forEach(btn=>{
@@ -984,24 +984,24 @@
     const who = user?.name || user?.email || v.email || "—";
     const badge = v.status==="aprobada" ? "ok" : v.status==="rechazada" ? "danger" : "warn";
     const statusLabel = v.status || "pendiente";
-    return \`
+    return `
       <div class="card" style="padding:10px;margin-bottom:10px">
         <div class="row" style="justify-content:space-between">
           <div>
-            <div style="font-weight:800">\${escapeHtml(who)}</div>
-            <div class="muted small">\${escapeHtml(v.fromDate)} → \${escapeHtml(v.toDate)}</div>
-            \${v.comment ? \`<div class="small" style="margin-top:6px">\${escapeHtml(v.comment)}</div>\` : ""}
+            <div style="font-weight:800">${escapeHtml(who)}</div>
+            <div class="muted small">${escapeHtml(v.fromDate)} → ${escapeHtml(v.toDate)}</div>
+            ${v.comment ? `<div class="small" style="margin-top:6px">${escapeHtml(v.comment)}</div>` : ""}
           </div>
           <div style="text-align:right">
-            <div class="badge \${badge}">\${escapeHtml(statusLabel)}</div>
-            \${withButtons ? \`
+            <div class="badge ${badge}">${escapeHtml(statusLabel)}</div>
+            ${withButtons ? `
               <div class="row" style="justify-content:flex-end;margin-top:8px">
-                <button class="ok" data-vac-approve="\${v.id}">Aprobar</button>
-                <button class="danger" data-vac-reject="\${v.id}">Rechazar</button>
-              </div>\` : ""}
+                <button class="ok" data-vac-approve="${v.id}">Aprobar</button>
+                <button class="danger" data-vac-reject="${v.id}">Rechazar</button>
+              </div>` : ""}
           </div>
         </div>
-      </div>\`;
+      </div>`;
   }
 
   $("vacSubmitBtn").addEventListener("click", async ()=>{
@@ -1195,16 +1195,16 @@
       const net = fmtHM(calcNetMinutes(te));
       const badge = te.status==="open" ? (te.paused ? "warn" : "ok") : "";
       const status = te.status==="open" ? (te.paused ? "en pausa" : "abierta") : "cerrada";
-      return \`
+      return `
         <div class="card" style="padding:10px;margin-bottom:10px">
           <div class="row" style="justify-content:space-between">
             <div>
-              <div style="font-weight:800">\${escapeHtml(te.dayISO)}</div>
-              <div class="muted small">Estado: \${escapeHtml(status)} · Neto: \${net}</div>
+              <div style="font-weight:800">${escapeHtml(te.dayISO)}</div>
+              <div class="muted small">Estado: ${escapeHtml(status)} · Neto: ${net}</div>
             </div>
-            <div><span class="badge \${badge}">\${escapeHtml(net)}</span></div>
+            <div><span class="badge ${badge}">${escapeHtml(net)}</span></div>
           </div>
-        </div>\`;
+        </div>`;
     }).join("");
   }
 
@@ -1227,16 +1227,16 @@
 
     box.innerHTML = rows.map(r=>{
       const net = r.te ? fmtHM(calcNetMinutes(r.te)) : "0:00";
-      return \`
+      return `
         <div class="card" style="padding:10px;margin-bottom:10px">
           <div class="row" style="justify-content:space-between">
             <div>
-              <div style="font-weight:800">\${escapeHtml(r.u.name || r.u.email)}</div>
-              <div class="muted small">\${escapeHtml(r.status)} · Hoy: \${net}</div>
+              <div style="font-weight:800">${escapeHtml(r.u.name || r.u.email)}</div>
+              <div class="muted small">${escapeHtml(r.status)} · Hoy: ${net}</div>
             </div>
-            <span class="badge \${r.badge}">\${escapeHtml(r.status)}</span>
+            <span class="badge ${r.badge}">${escapeHtml(r.status)}</span>
           </div>
-        </div>\`;
+        </div>`;
     }).join("");
   }
 
@@ -1252,15 +1252,15 @@
       const who = u?.name || u?.email || te.email || te.uid;
       const net = fmtHM(calcNetMinutes(te));
       const st = te.status==="open" ? (te.paused ? "abierta (pausa)" : "abierta") : "cerrada";
-      return \`
+      return `
         <div class="card" style="padding:10px;margin-bottom:10px">
           <div class="row" style="justify-content:space-between">
             <div>
-              <div style="font-weight:800">\${escapeHtml(who)} · \${escapeHtml(te.dayISO)}</div>
-              <div class="muted small">Estado: \${escapeHtml(st)} · Neto: \${net}</div>
+              <div style="font-weight:800">${escapeHtml(who)} · ${escapeHtml(te.dayISO)}</div>
+              <div class="muted small">Estado: ${escapeHtml(st)} · Neto: ${net}</div>
             </div>
           </div>
-        </div>\`;
+        </div>`;
     }).join("");
   }
 
@@ -1300,17 +1300,17 @@
       const diff = t.week - goalMin;
       const badge = diff>=0 ? "ok" : "warn";
       const diffTxt = diff>=0 ? `+${fmtHM(diff)}` : `-${fmtHM(-diff)}`;
-      return \`
+      return `
         <div class="card" style="padding:10px;margin-bottom:10px">
           <div class="row" style="justify-content:space-between">
             <div>
-              <div style="font-weight:800">\${escapeHtml(u.name || u.email)}</div>
-              <div class="muted small">Semana: \${fmtHM(t.week)} / Objetivo: \${fmtHM(goalMin)} (\${diffTxt})</div>
-              <div class="muted small">Mes: \${fmtHM(t.month)}</div>
+              <div style="font-weight:800">${escapeHtml(u.name || u.email)}</div>
+              <div class="muted small">Semana: ${fmtHM(t.week)} / Objetivo: ${fmtHM(goalMin)} (${diffTxt})</div>
+              <div class="muted small">Mes: ${fmtHM(t.month)}</div>
             </div>
-            <span class="badge \${badge}">\${escapeHtml(diffTxt)}</span>
+            <span class="badge ${badge}">${escapeHtml(diffTxt)}</span>
           </div>
-        </div>\`;
+        </div>`;
     }).join("");
   }
 
@@ -1349,17 +1349,17 @@
     if (!box || !state.me || state.me.role!=="admin") return;
     const users = [...state.usersByUid.values()].sort((a,b)=>(a.email||"").localeCompare(b.email||""));
     box.innerHTML = users.map(u=>{
-      return \`
+      return `
         <div class="card" style="padding:10px;margin-bottom:10px">
           <div class="row" style="justify-content:space-between;align-items:flex-start">
             <div style="flex:1">
-              <div style="font-weight:800">\${escapeHtml(u.name || u.email)}</div>
-              <div class="muted small">\${escapeHtml(u.email||"")} · \${escapeHtml(u.phone||"—")}</div>
-              <div class="muted small">Rol: \${escapeHtml(u.role||"empleado")} · Objetivo: \${escapeHtml(String(u.weeklyGoalHours||0))}h · \${u.active===false ? "INACTIVO" : "ACTIVO"}</div>
+              <div style="font-weight:800">${escapeHtml(u.name || u.email)}</div>
+              <div class="muted small">${escapeHtml(u.email||"")} · ${escapeHtml(u.phone||"—")}</div>
+              <div class="muted small">Rol: ${escapeHtml(u.role||"empleado")} · Objetivo: ${escapeHtml(String(u.weeklyGoalHours||0))}h · ${u.active===false ? "INACTIVO" : "ACTIVO"}</div>
             </div>
-            <button class="secondary" data-edit-user="\${u.id}">Editar</button>
+            <button class="secondary" data-edit-user="${u.id}">Editar</button>
           </div>
-        </div>\`;
+        </div>`;
     }).join("");
 
     box.querySelectorAll("[data-edit-user]").forEach(btn=>{
@@ -1370,26 +1370,26 @@
   async function openUserEditor(uid){
     const u = state.usersByUid.get(uid);
     if (!u) return;
-    const body = \`
+    const body = `
       <div class="grid">
-        <div><label>Nombre</label><input id="m_name" value="\${escapeAttr(u.name||"")}" style="width:100%"/></div>
-        <div><label>Teléfono</label><input id="m_phone" value="\${escapeAttr(u.phone||"")}" style="width:100%"/></div>
-        <div><label>Email</label><input id="m_email" value="\${escapeAttr(u.email||"")}" style="width:100%" disabled/></div>
+        <div><label>Nombre</label><input id="m_name" value="${escapeAttr(u.name||"")}" style="width:100%"/></div>
+        <div><label>Teléfono</label><input id="m_phone" value="${escapeAttr(u.phone||"")}" style="width:100%"/></div>
+        <div><label>Email</label><input id="m_email" value="${escapeAttr(u.email||"")}" style="width:100%" disabled/></div>
         <div class="two">
           <div><label>Rol</label>
             <select id="m_role" style="width:100%">
-              \${["admin","empleado","tecnico"].map(r=>\`<option \${u.role===r?"selected":""} value="\${r}">\${r}</option>\`).join("")}
+              ${["admin","empleado","tecnico"].map(r=>`<option ${u.role===r?"selected":""} value="${r}">${r}</option>`).join("")}
             </select>
           </div>
-          <div><label>Horas objetivo / semana</label><input id="m_goal" type="number" min="0" value="\${escapeAttr(String(u.weeklyGoalHours||0))}" style="width:100%"/></div>
+          <div><label>Horas objetivo / semana</label><input id="m_goal" type="number" min="0" value="${escapeAttr(String(u.weeklyGoalHours||0))}" style="width:100%"/></div>
         </div>
         <div><label>Activo</label>
           <select id="m_active" style="width:100%">
-            <option value="true" \${u.active!==false?"selected":""}>Sí</option>
-            <option value="false" \${u.active===false?"selected":""}>No</option>
+            <option value="true" ${u.active!==false?"selected":""}>Sí</option>
+            <option value="false" ${u.active===false?"selected":""}>No</option>
           </select>
         </div>
-      </div>\`;
+      </div>`;
     const ok = await openModal({title:"Editar usuario", body, okText:"Guardar"});
     if (!ok) return;
 
@@ -1407,7 +1407,7 @@
 
   $("newPendingBtn").addEventListener("click", async ()=>{
     if (!state.me || state.me.role!=="admin") return;
-    const body = \`
+    const body = `
       <div class="grid">
         <div><label>Email</label><input id="p_email" placeholder="nuevo@fibaroteleco.com" style="width:100%"/></div>
         <div><label>Nombre</label><input id="p_name" placeholder="Nombre Apellido" style="width:100%"/></div>
@@ -1422,7 +1422,7 @@
           </div>
           <div><label>Horas objetivo/semana</label><input id="p_goal" type="number" min="0" value="40" style="width:100%"/></div>
         </div>
-      </div>\`;
+      </div>`;
     const ok = await openModal({title:"Preparar alta (ficha)", body, okText:"Guardar"});
     if (!ok) return;
 
@@ -1447,16 +1447,16 @@
     const pend = state.pendingUsers || [];
     if (!pend.length){ box.innerHTML = '<div class="muted">No hay altas pendientes.</div>'; return; }
     box.innerHTML = pend.map(p=>{
-      return \`
+      return `
         <div class="card" style="padding:10px;margin-bottom:10px">
           <div class="row" style="justify-content:space-between">
             <div>
-              <div style="font-weight:800">\${escapeHtml(p.email)}</div>
-              <div class="muted small">\${escapeHtml(p.name||"")} · \${escapeHtml(String(p.weeklyGoalHours||0))}h · \${escapeHtml(p.role||"empleado")}</div>
+              <div style="font-weight:800">${escapeHtml(p.email)}</div>
+              <div class="muted small">${escapeHtml(p.name||"")} · ${escapeHtml(String(p.weeklyGoalHours||0))}h · ${escapeHtml(p.role||"empleado")}</div>
             </div>
-            <button class="danger" data-del-pending="\${p.id}">Borrar</button>
+            <button class="danger" data-del-pending="${p.id}">Borrar</button>
           </div>
-        </div>\`;
+        </div>`;
     }).join("");
     box.querySelectorAll("[data-del-pending]").forEach(btn=>{
       btn.addEventListener("click", async ()=>{
@@ -1503,16 +1503,16 @@
     const list = state.shifts.slice();
     box.innerHTML = list.map(sh=>{
       const dur = fmtHM(shiftDurationMinutes(sh));
-      return \`
+      return `
         <div class="card" style="padding:10px;margin-bottom:10px">
           <div class="row" style="justify-content:space-between">
             <div>
-              <div style="font-weight:800">\${escapeHtml(sh.label)}</div>
-              <div class="muted small">\${sh.start && sh.end ? \`\${escapeHtml(sh.start)}–\${escapeHtml(sh.end)} · \${dur}\` : "Sin horas (Libre)"} </div>
+              <div style="font-weight:800">${escapeHtml(sh.label)}</div>
+              <div class="muted small">${sh.start && sh.end ? `${escapeHtml(sh.start)}–${escapeHtml(sh.end)} · ${dur}` : "Sin horas (Libre)"} </div>
             </div>
-            <button class="danger" data-del-shift="\${sh.id}">Borrar</button>
+            <button class="danger" data-del-shift="${sh.id}">Borrar</button>
           </div>
-        </div>\`;
+        </div>`;
     }).join("");
     box.querySelectorAll("[data-del-shift]").forEach(btn=>{
       btn.addEventListener("click", async ()=>{
@@ -1628,35 +1628,35 @@
     const dayRows = weeks[weekIdx].days.map((day, di)=>{
       const cells = users.map(u=>{
         const cur = day.assignments[u.id] || "";
-        return \`
+        return `
           <td>
-            <select data-pat-uid="\${u.id}" data-pat-day="\${di}" style="width:100%">
+            <select data-pat-uid="${u.id}" data-pat-day="${di}" style="width:100%">
               <option value="">(vacío)</option>
-              \${shiftOptions.map(sh=>\`<option value="\${sh.id}" \${cur===sh.id?"selected":""}>\${escapeHtml(sh.label)}</option>\`).join("")}
+              ${shiftOptions.map(sh=>`<option value="${sh.id}" ${cur===sh.id?"selected":""}>${escapeHtml(sh.label)}</option>`).join("")}
             </select>
-          </td>\`;
+          </td>`;
       }).join("");
-      return \`
+      return `
         <tr>
-          <td style="font-weight:800">\${day.name}</td>
-          \${cells}
-        </tr>\`;
+          <td style="font-weight:800">${day.name}</td>
+          ${cells}
+        </tr>`;
     }).join("");
 
-    box.innerHTML = \`
-      <div class="muted small" style="margin-bottom:8px">Editando: <b>\${escapeHtml(p.name)}</b> · Semana \${weekIdx+1}/\${cycle}</div>
+    box.innerHTML = `
+      <div class="muted small" style="margin-bottom:8px">Editando: <b>${escapeHtml(p.name)}</b> · Semana ${weekIdx+1}/${cycle}</div>
       <table>
         <thead>
           <tr>
             <th>Día</th>
-            \${users.map(u=>\`<th>\${escapeHtml(u.name||u.email)}</th>\`).join("")}
+            ${users.map(u=>`<th>${escapeHtml(u.name||u.email)}</th>`).join("")}
           </tr>
         </thead>
-        <tbody>\${dayRows}</tbody>
+        <tbody>${dayRows}</tbody>
       </table>
       <div class="row" style="justify-content:flex-end">
         <button id="savePatternWeekBtn">Guardar cambios de esta semana</button>
-      </div>\`;
+      </div>`;
 
     $("savePatternWeekBtn").addEventListener("click", async ()=>{
       const selects = box.querySelectorAll("select[data-pat-uid]");
@@ -1702,7 +1702,7 @@
 
     // Totales
     const totals = computePatternTotals(weeks, users, cycle);
-    totalsBox.innerHTML = totals.map(t=>\`<div>• <b>\${escapeHtml(t.user)}</b>: promedio ciclo \${fmtHM(t.avgMin)} / objetivo \${fmtHM(t.goalMin)} · (semana 1: \${fmtHM(t.weeks[0]||0)} …)</div>\`).join("");
+    totalsBox.innerHTML = totals.map(t=>`<div>• <b>${escapeHtml(t.user)}</b>: promedio ciclo ${fmtHM(t.avgMin)} / objetivo ${fmtHM(t.goalMin)} · (semana 1: ${fmtHM(t.weeks[0]||0)} …)</div>`).join("");
   }
 
   function computePatternTotals(weeks, users, cycle){
@@ -1798,11 +1798,11 @@
           return `<div><b>${escapeHtml(sh.label)}</b><div class="muted small">${escapeHtml(sh.start||"")}–${escapeHtml(sh.end||"")}</div></div>`;
         }).join("</td><td>");
 
-        rows.push(\`
+        rows.push(`
           <tr>
-            <td><b>\${["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"][d]}</b><div class="muted small">\${dayISO}</div></td>
-            <td>\${cols}</td>
-          </tr>\`.replace("<td>"+cols+"</td>", "<td>"+cols+"</td>"));
+            <td><b>${["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"][d]}</b><div class="muted small">${dayISO}</div></td>
+            <td>${cols}</td>
+          </tr>`.replace("<td>"+cols+"</td>", "<td>"+cols+"</td>"));
       }
 
       // render as a table with first col day, then each user col
@@ -1824,16 +1824,16 @@
           return `<td><div><b>${escapeHtml(sh.label)}</b><div class="muted small">${escapeHtml(sh.start||"")}–${escapeHtml(sh.end||"")}</div></div></td>`;
         }).join("");
 
-        return \`
+        return `
           <tr>
-            <td style="font-weight:800">\${["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"][d]}
-              <div class="muted small">\${dayISO}</div>
+            <td style="font-weight:800">${["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"][d]}
+              <div class="muted small">${dayISO}</div>
             </td>
-            \${tds}
-          </tr>\`;
+            ${tds}
+          </tr>`;
       }).join("");
 
-      blocks.push(\`
+      blocks.push(`
         <div class="card" style="padding:10px">
           <div class="row" style="justify-content:space-between">
             <div style="font-weight:900">${label}</div>
@@ -1844,7 +1844,7 @@
             <thead><tr><th>Día</th>${head}</tr></thead>
             <tbody>${body}</tbody>
           </table>
-        </div>\`);
+        </div>`);
     }
 
     grid.innerHTML = blocks.join("");
@@ -1878,11 +1878,11 @@
     if (!logs.length){ box.innerHTML = '<div class="muted">Sin registros.</div>'; return; }
     box.innerHTML = logs.map(l=>{
       const who = state.usersByUid.get(l.who)?.name || l.who || "—";
-      return \`
+      return `
         <div class="card" style="padding:10px;margin-bottom:10px">
-          <div style="font-weight:800">\${escapeHtml(l.action||"")}</div>
-          <div class="muted small">por \${escapeHtml(who)} · \${escapeHtml(l.at?.toDate ? l.at.toDate().toLocaleString() : "")}</div>
-        </div>\`;
+          <div style="font-weight:800">${escapeHtml(l.action||"")}</div>
+          <div class="muted small">por ${escapeHtml(who)} · ${escapeHtml(l.at?.toDate ? l.at.toDate().toLocaleString() : "")}</div>
+        </div>`;
     }).join("");
   }
 
