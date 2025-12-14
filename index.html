@@ -1682,12 +1682,15 @@ actualizarUIUsuario();
         try {
           if (!doc.exists) {
             // Primera vez: subimos el estado actual al cloud
-            const payload = Object.assign({}, appState, {
+            const payloadRaw = Object.assign({}, appState, {
               _meta: {
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 createdBy: auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : "unknown"
               }
             });
+
+            const payload = sanitizeForFirestore(payloadRaw);
+
             await GLOBAL_STATE_REF.set(payload, { merge: true });
             hasLoadedRemote = true;
             return;
@@ -1850,7 +1853,43 @@ actualizarUIUsuario();
 
     // ---- Sincronización Firestore (online de verdad) ----
 
-    function scheduleCloudSave() {
+    
+    // Limpia 'undefined' (Firestore no lo permite). Mantiene FieldValue/Timestamp.
+    function sanitizeForFirestore(value) {
+      if (value === undefined) return undefined; // se elimina a nivel de clave/array
+      if (value === null) return null;
+
+      // Sentinelas de Firestore (serverTimestamp, etc.)
+      if (value && typeof value === "object" && value._methodName) return value;
+
+      // Timestamp (compat) / objetos con toDate()
+      if (value && typeof value === "object" && typeof value.toDate === "function") return value;
+
+      // Date -> ISO string
+      if (value instanceof Date) return value.toISOString();
+
+      if (Array.isArray(value)) {
+        const out = [];
+        for (const item of value) {
+          const cleaned = sanitizeForFirestore(item);
+          if (cleaned !== undefined) out.push(cleaned);
+        }
+        return out;
+      }
+
+      if (typeof value === "object") {
+        const out = {};
+        for (const k in value) {
+          const cleaned = sanitizeForFirestore(value[k]);
+          if (cleaned !== undefined) out[k] = cleaned;
+        }
+        return out;
+      }
+
+      return value;
+    }
+
+function scheduleCloudSave() {
       try {
         if (!auth || !auth.currentUser) return;
         if (!hasLoadedRemote) return;              // evita sobrescribir remoto al arrancar
@@ -1863,12 +1902,14 @@ actualizarUIUsuario();
           if (!auth.currentUser) return;
           if (isApplyingRemoteState) return;
 
-          const payload = Object.assign({}, appState, {
+          const payloadRaw = Object.assign({}, appState, {
             _meta: {
               updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
               updatedBy: auth.currentUser.email || auth.currentUser.uid
             }
           });
+
+          const payload = sanitizeForFirestore(payloadRaw);
 
           await GLOBAL_STATE_REF.set(payload, { merge: true });
         } catch (e) {
@@ -3149,7 +3190,14 @@ actualizarUIUsuario();
       return d.toLocaleTimeString("es-ES", {
         hour:"2-digit",
         minute:"2-digit"
-      });
+      }
+
+    function formatTimeForInput(iso) {
+      if (!iso) return "";
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return "";
+      return d.toLocaleTimeString("es-ES", { hour:"2-digit", minute:"2-digit" });
+    });
     }
 
     function formatDurationHours(h) {
@@ -3313,10 +3361,10 @@ actualizarUIUsuario();
             <td>${personaNombre}</td>
             <td>${e.fecha || "-"}</td>
             <td>
-              <input class="inline-input" type="time" value="${formatTimeFromISO(e.inicio)}" data-field="inicio" />
+              <input class="inline-input" type="time" value="${formatTimeForInput(e.inicio)}" data-field="inicio" />
             </td>
             <td>
-              <input class="inline-input" type="time" value="${formatTimeFromISO(e.fin)}" data-field="fin" />
+              <input class="inline-input" type="time" value="${formatTimeForInput(e.fin)}" data-field="fin" />
             </td>
             <td>${formatDurationHours(horas)}</td>
             <td>
