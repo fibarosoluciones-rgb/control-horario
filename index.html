@@ -1620,7 +1620,7 @@
     let hasLoadedRemote = false;
     let cloudSaveTimer = null;
 
-    function getProfileByEmail(email) {
+    function getProfileByEmail(emailUser) {
       const e = (email || "").toLowerCase().trim();
       // 1) Perfil editable (cloud/local)
       try {
@@ -3706,18 +3706,18 @@ function actualizarUIUsuario() {
       try {
         const cred = await firebaseLogin(email, password);
         const fbUser = cred.user;
-        const email = (fbUser.email || "").toLowerCase().trim();
+        const emailUser = (fbUser.email || "").toLowerCase().trim();
 
         // Permitidos (ver explicación en onAuthStateChanged)
         let expectedUid = null;
         try {
-          if (appState.userProfilesByEmail && appState.userProfilesByEmail[email] && appState.userProfilesByEmail[email].uid) {
-            expectedUid = appState.userProfilesByEmail[email].uid;
+          if (appState.userProfilesByEmail && appState.userProfilesByEmail[emailUser] && appState.userProfilesByEmail[emailUser].uid) {
+            expectedUid = appState.userProfilesByEmail[emailUser].uid;
           }
         } catch (_) {}
-        if (!expectedUid) expectedUid = ALLOWED_UID_BY_EMAIL[email] || null;
+        if (!expectedUid) expectedUid = ALLOWED_UID_BY_EMAIL[emailUser] || null;
 
-        const profilePre = getProfileByEmail(email);
+        const profilePre = getProfileByEmail(emailUser);
 
         if (!profilePre) {
           try { await auth.signOut(); } catch (e) {}
@@ -3735,8 +3735,8 @@ function actualizarUIUsuario() {
 
         // Si no había UID esperado (usuario nuevo), lo fijamos automáticamente
         try {
-          if (appState.userProfilesByEmail && appState.userProfilesByEmail[email] && !appState.userProfilesByEmail[email].uid) {
-            appState.userProfilesByEmail[email].uid = fbUser.uid;
+          if (appState.userProfilesByEmail && appState.userProfilesByEmail[emailUser] && !appState.userProfilesByEmail[emailUser].uid) {
+            appState.userProfilesByEmail[emailUser].uid = fbUser.uid;
             saveState();
           }
         } catch (_) {}
@@ -3830,23 +3830,23 @@ tabHorario.addEventListener("click", () => setActiveTab("horario"));
           return;
         }
 
-        const email = (fbUser.email || "").toLowerCase().trim();
+        const emailUser = (fbUser.email || "").toLowerCase().trim();
         // Permitidos:
         // 1) Si el admin ya creó una ficha (userProfilesByEmail), se permite ese email.
         // 2) Si además hay UID guardado, se valida el UID.
         // 3) Fallback: lista fija (ALLOWED_UID_BY_EMAIL) para los 3 iniciales.
         let expectedUid = null;
         try {
-          if (appState.userProfilesByEmail && appState.userProfilesByEmail[email] && appState.userProfilesByEmail[email].uid) {
-            expectedUid = appState.userProfilesByEmail[email].uid;
+          if (appState.userProfilesByEmail && appState.userProfilesByEmail[emailUser] && appState.userProfilesByEmail[emailUser].uid) {
+            expectedUid = appState.userProfilesByEmail[emailUser].uid;
           }
         } catch (_) {}
-        if (!expectedUid) expectedUid = ALLOWED_UID_BY_EMAIL[email] || null;
+        if (!expectedUid) expectedUid = ALLOWED_UID_BY_EMAIL[emailUser] || null;
 
-        const profilePre = getProfileByEmail(email);
+        const profilePre = getProfileByEmail(emailUser);
 
         if (!profilePre) {
-          console.warn("Email no autorizado (sin ficha)", email);
+          console.warn("Email no autorizado (sin ficha)", emailUser);
           try { await auth.signOut(); } catch (e) {}
           loginError.textContent = "Acceso denegado: email no autorizado.";
           loginError.style.display = "block";
@@ -3870,13 +3870,13 @@ tabHorario.addEventListener("click", () => setActiveTab("horario"));
 
         // Si no había UID esperado (usuario nuevo), lo fijamos automáticamente
         try {
-          if (appState.userProfilesByEmail && appState.userProfilesByEmail[email] && !appState.userProfilesByEmail[email].uid) {
-            appState.userProfilesByEmail[email].uid = fbUser.uid;
+          if (appState.userProfilesByEmail && appState.userProfilesByEmail[emailUser] && !appState.userProfilesByEmail[emailUser].uid) {
+            appState.userProfilesByEmail[emailUser].uid = fbUser.uid;
             saveState();
           }
         } catch (_) {}
 
-        const profile = getProfileByEmail(email);
+        const profile = getProfileByEmail(emailUser);
         if (!profile) {
           try { await auth.signOut(); } catch (e) {}
           loginError.textContent = "Acceso denegado: email no autorizado.";
