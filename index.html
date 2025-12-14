@@ -1715,7 +1715,7 @@ actualizarUIUsuario();
     }
 
     async function firebaseLogin(email, password) {
-      const e = (emailUser || "").toLowerCase().trim();
+      const e = (email || "").toLowerCase().trim();
       try {
         return await auth.signInWithEmailAndPassword(e, password);
       } catch (err) {
@@ -1917,7 +1917,7 @@ actualizarUIUsuario();
       }
       // Semilla: perfiles por defecto (no sobreescribe cambios del admin)
       Object.keys(PROFILE_BY_EMAIL).forEach((email) => {
-        const e = (emailUser || "").toLowerCase().trim();
+        const e = (email || "").toLowerCase().trim();
         if (!appState.userProfilesByEmail[e]) {
           const p = Object.assign({}, PROFILE_BY_EMAIL[e]);
           // Normaliza campos
